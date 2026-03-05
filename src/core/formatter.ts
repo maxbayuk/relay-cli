@@ -19,6 +19,11 @@ const PRESETS: Record<string, string> = {
   // Request presets
   'request-status': 'requests[0].{id: id, status: status, createdAt: createdAt, updatedAt: updatedAt}',
   'request-slim': 'requests[0].{id: id, status: status, user: user, recipient: recipient, metadata: metadata}',
+  'request-summary': 'requests[0].{status: status, user: user, recipient: data.metadata.recipient, from: data.metadata.currencyIn.currency.symbol, fromChain: data.metadata.currencyIn.currency.chainId, fromAmount: data.metadata.currencyIn.amountFormatted, fromUsd: data.metadata.currencyIn.amountUsd, to: data.metadata.currencyOut.currency.symbol, toChain: data.metadata.currencyOut.currency.chainId, toAmount: data.metadata.currencyOut.amountFormatted, toUsd: data.metadata.currencyOut.amountUsd, feesUsd: data.feesUsd, referrer: referrer, createdAt: createdAt}',
+
+  // Quote presets
+  'quote-summary': 'details.{operation: operation, from: currencyIn.currency.symbol, fromChain: currencyIn.currency.chainId, fromAmount: currencyIn.amountFormatted, fromUsd: currencyIn.amountUsd, to: currencyOut.currency.symbol, toChain: currencyOut.currency.chainId, toAmount: currencyOut.amountFormatted, toUsd: currencyOut.amountUsd, rate: rate, totalImpact: totalImpact, slippage: slippageTolerance.destination.percent, timeEstimate: timeEstimate}',
+  'quote-fees': 'fees.{relayerGas: relayerGas.amountUsd, relayerService: relayerService.amountUsd, app: app.amountUsd, subsidized: subsidized.amountUsd}',
 }
 
 /**
