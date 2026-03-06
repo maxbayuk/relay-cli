@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relay CLI — AI-Native CLI Proposal</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#f8f9fc; color:#1a1a2e; font-family:system-ui,-apple-system,sans-serif; line-height:1.6; }
+    .header { background:linear-gradient(135deg,#1a1a2e 0%,#2a2a4e 100%); color:#fff; padding:48px 40px 40px; text-align:center; }
+    .header h1 { font-size:36px; font-weight:800; letter-spacing:-0.5px; margin-bottom:8px; }
+    .header .subtitle { font-size:18px; color:#b0b0d0; font-weight:400; margin-bottom:20px; }
+    .header .meta { display:flex; justify-content:center; gap:24px; flex-wrap:wrap; font-size:13px; color:#9a9ac0; }
+    .header .meta span { display:flex; align-items:center; gap:6px; }
+    .legend { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; padding:16px 20px; background:#fff; border-bottom:1px solid #d8dce8; font-size:12px; color:#6b7394; }
+    .legend span { display:flex; align-items:center; gap:6px; }
+    .legend .dot { width:10px; height:10px; border-radius:50%; }
+    .container { max-width:1100px; margin:0 auto; padding:32px 20px 60px; }
+
+    /* Topic Sections */
+    .topic-section { margin-bottom:40px; border-left:3px solid #d8dce8; padding-left:28px; position:relative; }
+    .topic-section::before { content:''; position:absolute; left:-8px; top:0; width:13px; height:13px; border-radius:50%; }
+    .topic-marker { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .topic-marker .icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .topic-marker h2 { font-size:22px; font-weight:700; }
+    .topic-marker .status { font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; margin-left:auto; }
+
+    /* Theme colors */
+    .theme-problem { border-left-color:#e08820; }
+    .theme-problem .icon { background:#fff3e0; border:1px solid #e08820; }
+    .theme-problem h2 { color:#9a5800; }
+    .theme-architecture { border-left-color:#5b4ed0; }
+    .theme-architecture .icon { background:#edeaff; border:1px solid #5b4ed0; }
+    .theme-architecture h2 { color:#3d2fa0; }
+    .theme-features { border-left-color:#2ba89e; }
+    .theme-features .icon { background:#e2f8f5; border:1px solid #2ba89e; }
+    .theme-features h2 { color:#1a7a70; }
+    .theme-safety { border-left-color:#d03030; }
+    .theme-safety .icon { background:#ffe8e8; border:1px solid #d03030; }
+    .theme-safety h2 { color:#a02020; }
+    .theme-roadmap { border-left-color:#2a9a40; }
+    .theme-roadmap .icon { background:#e6ffe8; border:1px solid #2a9a40; }
+    .theme-roadmap h2 { color:#1a6a2a; }
+    .theme-code { border-left-color:#2850b0; }
+    .theme-code .icon { background:#edf2ff; border:1px solid #2850b0; }
+    .theme-code h2 { color:#2850b0; }
+
+    /* Cards */
+    .card { background:#fff; border:1px solid #d8dce8; border-radius:12px; padding:20px 24px; margin:12px 0; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+    .card h3 { font-size:16px; font-weight:700; margin-bottom:8px; }
+    .card p { font-size:14px; color:#4a4a6a; }
+
+    /* Popout Explainer */
+    .popout { position:relative; margin:16px 0; padding:20px 24px 16px; border-radius:12px; border:1px solid #d0c8f0; background:#f8f7ff; }
+    .popout::before { content:attr(data-label); position:absolute; top:-11px; left:20px; font-size:10px; font-weight:700; letter-spacing:0.5px; padding:2px 10px; border-radius:4px; background:#5b4ed0; color:#fff; }
+    .popout.popout-warn { border-color:#f0c890; background:#fffaf2; }
+    .popout.popout-warn::before { background:#e08820; }
+    .popout.popout-success { border-color:#a0d8a8; background:#f5fff6; }
+    .popout.popout-success::before { background:#2a9a40; }
+    .popout.popout-info { border-color:#a0b8e0; background:#f0f4ff; }
+    .popout.popout-info::before { background:#2850b0; }
+    .popout-content { font-size:14px; color:#3a3a5a; line-height:1.7; }
+
+    /* Architecture Diagram */
+    .arch-diagram { display:flex; flex-direction:column; align-items:center; gap:8px; margin:20px 0; padding:24px; background:#fff; border:1px solid #d8dce8; border-radius:12px; }
+    .arch-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .arch-box { padding:12px 20px; border-radius:10px; font-size:13px; font-weight:600; border:2px solid #d8dce8; background:#fff; text-align:center; min-width:120px; }
+    .arch-box.primary { background:#edeaff; border-color:#5b4ed0; color:#3d2fa0; }
+    .arch-box.secondary { background:#e2f8f5; border-color:#2ba89e; color:#1a7a70; }
+    .arch-box.accent { background:#fff3e0; border-color:#e08820; color:#9a5800; }
+    .arch-box.danger { background:#ffe8e8; border-color:#d03030; color:#a02020; }
+    .arch-box.blue { background:#edf2ff; border-color:#2850b0; color:#2850b0; }
+    .arch-arrow { font-size:20px; color:#6b7394; font-weight:700; }
+    .arch-arrow-down { font-size:20px; color:#6b7394; font-weight:700; }
+    .arch-arrow-down::after { content:'↓'; }
+
+    /* Insight */
+    .insight { background:#fffde7; border:1px solid #f0e68c; border-radius:10px; padding:14px 20px; margin:12px 0; font-size:14px; color:#5a5000; position:relative; padding-left:24px; }
+    .insight::before { content:'💡 KEY INSIGHT'; font-size:10px; font-weight:700; letter-spacing:0.5px; display:block; margin-bottom:4px; color:#8a7800; }
+
+    /* Code Block */
+    .code-block { background:#1a1a2e; color:#e0e0f0; border-radius:10px; padding:18px 22px; font-family:'SF Mono',Menlo,monospace; font-size:13px; line-height:1.8; overflow-x:auto; margin:12px 0; white-space:pre; }
+    .code-block .key { color:#b0a0f0; }
+    .code-block .str { color:#70d0c0; }
+    .code-block .num { color:#f0b060; }
+    .code-block .cmt { color:#6b7394; }
+    .code-block .cmd { color:#70d0c0; }
+    .code-block .flag { color:#b0a0f0; }
+    .code-block .comment { color:#6b7394; }
+
+    /* Decision Points */
+    .decision { background:#fff; border:1px solid #d8dce8; border-radius:12px; padding:20px 24px; margin:16px 0; }
+    .decision-label { font-size:11px; font-weight:700; color:#5b4ed0; letter-spacing:0.5px; margin-bottom:12px; }
+    .decision-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .option { border:2px solid #e8e8f0; border-radius:10px; padding:14px 18px; }
+    .option.chosen { border-color:#2a9a40; background:#f5fff6; }
+    .option.chosen::after { content:'✓ Chosen'; font-size:10px; font-weight:700; color:#2a9a40; display:block; margin-top:6px; }
+    .option-title { font-size:14px; font-weight:700; margin-bottom:4px; }
+    .option p { font-size:13px; color:#6b7394; }
+
+    /* Gradient Value Table */
+    .gradient-table-wrap { background:#1a1a2e; border-radius:16px; padding:36px 32px 28px; margin:24px 0; color:#e0e0e8; }
+    .gradient-table-title { text-align:center; font-size:22px; font-weight:700; color:#fff; margin:0 0 6px; }
+    .gradient-table-subtitle { text-align:center; font-size:14px; color:#9a9ab0; margin:0 0 24px; }
+    .gradient-table { width:100%; border-collapse:separate; border-spacing:0; font-size:14px; table-layout:fixed; }
+    .gradient-table thead th { background:#23233a; color:#b0b0c8; font-weight:600; padding:12px 16px; text-align:center; border-bottom:2px solid #2a2a45; }
+    .gradient-table thead th:first-child { border-radius:8px 0 0 0; text-align:left; }
+    .gradient-table thead th:last-child { border-radius:0 8px 0 0; }
+    .gradient-table tbody td { padding:11px 16px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.06); font-variant-numeric:tabular-nums; }
+    .gradient-table tbody tr:last-child td:first-child { border-radius:0 0 0 8px; }
+    .gradient-table tbody tr:last-child td:last-child { border-radius:0 0 8px 0; }
+    .gradient-table .row-label { background:#23233a; color:#d0d0e0; font-weight:600; text-align:left; }
+    .gv { font-weight:600; }
+    .gv-1 { background:#b9f6ca; color:#1a5c2a; }
+    .gv-2 { background:#e8f5e9; color:#2e7d32; }
+    .gv-3 { background:#fff9c4; color:#7a6c00; }
+    .gv-4 { background:#fff176; color:#6d5f00; }
+    .gv-5 { background:#ffcc80; color:#8a5200; }
+    .gv-6 { background:#ffab40; color:#7a3e00; }
+    .gradient-table-note { text-align:center; font-size:12px; color:#7a7a95; margin:16px 0 0; font-style:italic; }
+
+    /* Framework Box */
+    .framework-box { background:#fff; border:1px solid #d8dce8; border-radius:12px; padding:20px 24px; margin:16px 0; }
+    .framework-box h4 { font-size:15px; font-weight:700; margin-bottom:12px; color:#3d2fa0; }
+    .fw-tree { font-size:13px; line-height:1.8; padding-left:16px; }
+    .branch { padding-left:20px; border-left:2px solid #d8dce8; margin:4px 0; }
+    .branch-label { font-weight:700; color:#5b4ed0; }
+    .leaf { color:#4a4a6a; }
+    .leaf code { background:#f0edff; padding:2px 6px; border-radius:4px; font-size:12px; color:#5b4ed0; }
+
+    /* Flow Steps */
+    .flow-diagram { display:flex; align-items:center; gap:0; margin:20px 0; flex-wrap:wrap; justify-content:center; }
+    .flow-step { background:#fff; border:2px solid #d8dce8; border-radius:10px; padding:10px 16px; font-size:12px; font-weight:600; text-align:center; min-width:100px; }
+    .flow-step.active { background:#edeaff; border-color:#5b4ed0; color:#3d2fa0; }
+    .flow-connector { width:30px; text-align:center; color:#6b7394; font-size:16px; font-weight:700; }
+
+    /* Venn */
+    .venn-container { display:flex; justify-content:center; margin:24px 0; }
+    .venn { position:relative; width:400px; height:200px; }
+    .venn-circle { position:absolute; width:200px; height:200px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; text-align:center; opacity:0.85; }
+    .venn-left { left:0; background:rgba(91,78,208,0.15); border:2px solid #5b4ed0; color:#3d2fa0; }
+    .venn-right { right:0; background:rgba(43,168,158,0.15); border:2px solid #2ba89e; color:#1a7a70; }
+    .venn-overlap { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:11px; font-weight:700; color:#1a1a2e; text-align:center; width:100px; }
+
+    /* Glossary */
+    .glossary { border-bottom:1px dashed #5b4ed0; cursor:help; position:relative; color:#5b4ed0; }
+    .glossary:hover::after { content:attr(data-def); position:absolute; bottom:120%; left:50%; transform:translateX(-50%); background:#1a1a2e; color:#fff; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:400; white-space:nowrap; max-width:320px; white-space:normal; z-index:100; box-shadow:0 4px 12px rgba(0,0,0,0.2); }
+
+    /* Param Table */
+    .param-table { width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; }
+    .param-table th { background:#f0f2f8; padding:10px 14px; text-align:left; font-weight:600; color:#4a4a6a; border-bottom:2px solid #d8dce8; }
+    .param-table td { padding:10px 14px; border-bottom:1px solid #e8e8f0; }
+    .param-table code { background:#f0edff; padding:2px 6px; border-radius:4px; font-size:12px; color:#5b4ed0; }
+    .type-tag { background:#e2f8f5; color:#1a7a70; font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; }
+
+    /* Summary Panel */
+    .summary-panel { background:#fff; border:2px solid #5b4ed0; border-radius:16px; padding:28px 32px; margin:40px 0 24px; }
+    .summary-panel h2 { font-size:20px; font-weight:700; color:#3d2fa0; margin-bottom:16px; }
+    .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .summary-card { background:#f8f7ff; border:1px solid #e0daf0; border-radius:10px; padding:16px 20px; }
+    .summary-card h4 { font-size:13px; font-weight:700; color:#5b4ed0; margin-bottom:8px; }
+    .summary-card ul { list-style:none; font-size:13px; color:#4a4a6a; }
+    .summary-card li { padding:3px 0; }
+    .summary-card li::before { content:'→ '; color:#5b4ed0; font-weight:700; }
+
+    /* Section gap */
+    .section-gap { height:16px; }
+
+    /* Mermaid */
+    .mermaid-wrap {
+      position: relative;
+      background: #fff;
+      border: 1px solid #d8dce8;
+      border-radius: 12px;
+      padding: 28px 20px;
+      overflow: auto;
+      margin: 16px 0;
+    }
+    .mermaid-wrap .mermaid {
+      display: flex;
+      justify-content: center;
+      transition: transform 0.2s ease;
+      transform-origin: top center;
+    }
+    .zoom-controls {
+      position: absolute;
+      top: 8px; right: 8px;
+      display: flex; gap: 2px;
+      background: #fff; border: 1px solid #d8dce8;
+      border-radius: 6px; padding: 2px; z-index: 10;
+    }
+    .zoom-controls button {
+      width: 28px; height: 28px; border: none;
+      background: transparent; color: #6b7394;
+      font-size: 14px; cursor: pointer; border-radius: 4px;
+    }
+    .zoom-controls button:hover { background: #f0f0f0; color: #1a1a2e; }
+    .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+    /* Responsive */
+    @media (max-width:700px) {
+      .header { padding:32px 20px; }
+      .header h1 { font-size:26px; }
+      .decision-options { grid-template-columns:1fr; }
+      .summary-grid { grid-template-columns:1fr; }
+      .arch-row { flex-direction:column; }
+      .venn { width:300px; height:160px; }
+      .venn-circle { width:160px; height:160px; }
+      .flow-diagram { flex-direction:column; }
+      .flow-connector { transform:rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>relay-cli</h1>
+    <div class="subtitle">AI-Native CLI for Relay Protocol — Dynamically Built from OpenAPI</div>
+    <div class="meta">
+      <span>📦 @relay-protocol/cli</span>
+      <span>📅 March 2026</span>
+      <span>🔧 TypeScript + Commander.js</span>
+      <span>📄 github.com/maxbayuk/relay-cli</span>
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <span><span class="dot" style="background:#e08820"></span> Problem</span>
+    <span><span class="dot" style="background:#5b4ed0"></span> Architecture</span>
+    <span><span class="dot" style="background:#2ba89e"></span> Features</span>
+    <span><span class="dot" style="background:#d03030"></span> Safety</span>
+    <span><span class="dot" style="background:#2850b0"></span> Code</span>
+    <span><span class="dot" style="background:#2a9a40"></span> Roadmap</span>
+  </div>
+
+  <div class="container">
+
+    <!-- ============================================ -->
+    <!-- SECTION 1: THE PROBLEM                       -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-problem">
+      <div class="topic-marker">
+        <div class="icon">⚠️</div>
+        <h2>The Problem</h2>
+      </div>
+
+      <p style="font-size:15px; color:#4a4a6a; margin-bottom:16px;">Relay's API has <strong>47 endpoints across 80+ chains</strong>. AI agents and developers are bad at using it directly.</p>
+
+      <div class="popout popout-warn" data-label="WHY AGENTS FAIL">
+        <div class="popout-content">
+          <strong>4 core pain points</strong> that cause AI agents to hallucinate or fail when calling Relay's API:
+          <br><br>
+          <strong>1. Response shape mismatch</strong> — <code>{"chains": [...]}</code> wraps the array, but agents assume a bare array.<br>
+          <strong>2. Nested arrays</strong> — <code>solverAddresses</code> is an array per chain, not a string. Agents do string comparison and get nothing.<br>
+          <strong>3. Spec bloat</strong> — The OpenAPI spec is 954KB with zero reusable schemas (everything inlined). Too large for context windows.<br>
+          <strong>4. No introspection</strong> — Agents guess at field names and response shapes instead of querying them.
+        </div>
+      </div>
+
+      <div class="venn-container">
+        <div class="venn">
+          <div class="venn-circle venn-left">
+            <span>relay-kit<br><span style="font-weight:400; font-size:10px;">React hooks<br>Wallet connection<br>Browser-only</span></span>
+          </div>
+          <div class="venn-circle venn-right">
+            <span>Terminal / AI<br><span style="font-weight:400; font-size:10px;">CLI workflows<br>Agent pipelines<br>Scripts &amp; CI</span></span>
+          </div>
+          <div class="venn-overlap">
+            <strong style="color:#d03030;">Gap!</strong><br>
+            <span style="font-size:10px;">No tool exists</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight">
+        The existing SDK (<code>relay-kit</code>) is browser-focused. There's nothing for terminal workflows or AI agents. The relay-cli fills this gap by being <strong>agent-first</strong> while staying human-friendly.
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 2: ARCHITECTURE                      -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-architecture">
+      <div class="topic-marker">
+        <div class="icon">🏗️</div>
+        <h2>Architecture</h2>
+      </div>
+
+      <p style="font-size:15px; color:#4a4a6a; margin-bottom:16px;">The CLI reads the <span class="glossary" data-def="api.relay.link/documentation/json — the machine-readable API definition">OpenAPI spec</span> at startup, caches it for 24h, and auto-generates commands for all 29 public endpoints. New endpoints appear automatically without code changes.</p>
+
+      <div class="arch-diagram">
+        <div class="arch-row">
+          <div class="arch-box accent">OpenAPI Spec<br><span style="font-size:11px;font-weight:400;">api.relay.link</span></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box primary">spec-loader<br><span style="font-size:11px;font-weight:400;">Fetch + Cache 24h</span></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box primary">command-builder<br><span style="font-size:11px;font-weight:400;">Paths → Commands</span></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box secondary">Commander.js<br><span style="font-size:11px;font-weight:400;">CLI Framework</span></div>
+        </div>
+        <div class="arch-arrow-down"></div>
+        <div class="arch-row">
+          <div class="arch-box blue">validator<br><span style="font-size:11px;font-weight:400;">Pre-flight checks</span></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box primary">chain-resolver<br><span style="font-size:11px;font-weight:400;">Names → IDs</span></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box primary">executor<br><span style="font-size:11px;font-weight:400;">HTTP + curl gen</span></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box secondary">formatter<br><span style="font-size:11px;font-weight:400;">Table / JSON / JMESPath</span></div>
+        </div>
+      </div>
+
+      <div class="mermaid-wrap">
+        <div class="zoom-controls">
+          <button onclick="zoomDiagram(this, 1.2)">+</button>
+          <button onclick="zoomDiagram(this, 0.8)">&minus;</button>
+          <button onclick="resetZoom(this)">&#8634;</button>
+        </div>
+        <pre class="mermaid">
+          graph TD
+            A["🚀 CLI startup"] --> B{"Cache hit?<br/>spec < 24h old"}
+            B -->|"✅ Hit"| C["Load cached spec"]
+            B -->|"❌ Miss"| D["Fetch api.relay.link<br/>/documentation/json"]
+            D --> E["Write to disk cache<br/>~/.relay-cli/cache/"]
+            E --> C
+            C --> F["Filter admin/internal<br/>endpoints"]
+            F --> G["Deduplicate versions<br/>/quote + /quote/v2 → v2 only"]
+            G --> H["Generate Commander.js<br/>subcommands"]
+            H --> I["29 public commands ready"]
+
+            style A fill:#edeaff,stroke:#5b4ed0,color:#3d2fa0
+            style D fill:#fff3e0,stroke:#e08820,color:#9a5800
+            style I fill:#e6ffe8,stroke:#2a9a40,color:#1a6a2a
+        </pre>
+      </div>
+
+      <div class="framework-box">
+        <h4>Module Map</h4>
+        <div class="fw-tree">
+          <span class="branch-label">src/</span>
+          <div class="branch">
+            <span class="leaf"><code>cli.ts</code> — Entry point, smart aliases, commander setup</span>
+          </div>
+          <div class="branch">
+            <span class="branch-label">core/</span>
+            <div class="branch"><span class="leaf"><code>spec-loader.ts</code> — Fetch + cache OpenAPI spec (24h TTL)</span></div>
+            <div class="branch"><span class="leaf"><code>command-builder.ts</code> — OpenAPI paths → commander commands at runtime</span></div>
+            <div class="branch"><span class="leaf"><code>executor.ts</code> — HTTP execution, curl generation, error handling</span></div>
+            <div class="branch"><span class="leaf"><code>formatter.ts</code> — JSON / table / minimal output + JMESPath presets</span></div>
+            <div class="branch"><span class="leaf"><code>validator.ts</code> — Address / chainId / requestId / amount validation</span></div>
+            <div class="branch"><span class="leaf"><code>chain-resolver.ts</code> — Chain name→ID fuzzy matching + token resolution</span></div>
+            <div class="branch"><span class="leaf"><code>cache.ts</code> — Disk cache (~/.relay-cli/cache/) with TTL</span></div>
+            <div class="branch"><span class="leaf"><code>auth.ts</code> — API key: env → config → flag priority</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="popout popout-info" data-label="DYNAMIC GENERATION">
+        <div class="popout-content">
+          Inspired by <a href="https://github.com/googleworkspace/cli" style="color:#2850b0;">Google Workspace CLI</a>, which dynamically generates its entire command surface from Google's Discovery Service. The relay-cli applies the same pattern to Relay's OpenAPI spec — <strong>zero hardcoding for endpoint discovery</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 3: EXECUTION PIPELINE                -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-code">
+      <div class="topic-marker">
+        <div class="icon">⚡</div>
+        <h2>Execution Pipeline</h2>
+      </div>
+
+      <p style="font-size:15px; color:#4a4a6a; margin-bottom:16px;">Every command follows the same 5-step pipeline from user input to formatted output.</p>
+
+      <div class="flow-diagram">
+        <div class="flow-step">User Input<br><span style="font-size:10px;font-weight:400;color:#6b7394;">relay bridge ...</span></div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step active">Validate<br><span style="font-size:10px;font-weight:400;">Pre-flight checks</span></div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step active">Resolve<br><span style="font-size:10px;font-weight:400;">Chains + tokens</span></div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step active">Execute<br><span style="font-size:10px;font-weight:400;">HTTP request</span></div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step">Format<br><span style="font-size:10px;font-weight:400;">Table or JSON</span></div>
+      </div>
+
+      <div class="code-block"><span class="cmt"># Human-friendly input</span>
+<span class="cmd">relay</span> <span class="str">bridge</span> <span class="flag">--from</span> base <span class="flag">--to</span> eth <span class="flag">--token</span> USDC <span class="flag">--amount</span> 100 <span class="flag">--user</span> 0x...
+
+<span class="cmt"># What actually happens:</span>
+<span class="cmt"># 1. "base" → 8453 (chain resolver)</span>
+<span class="cmt"># 2. "eth"  → 1    (chain resolver)</span>
+<span class="cmt"># 3. "USDC" → 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 (token resolver, Base)</span>
+<span class="cmt"># 4. POST /quote/v2 with resolved params</span>
+<span class="cmt"># 5. Format as table (TTY) or JSON (pipe)</span></div>
+
+      <div class="popout" data-label="TWO INPUT MODES">
+        <div class="popout-content">
+          <strong>For humans:</strong> <code>--from base --to eth --token USDC</code> — individual flags with fuzzy matching<br><br>
+          <strong>For agents:</strong> <code>--params '{"originChainId":8453,...}'</code> — raw JSON that maps directly to the API body. No ambiguity.
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 4: KEY FEATURES                      -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-features">
+      <div class="topic-marker">
+        <div class="icon">🎯</div>
+        <h2>Key Features</h2>
+      </div>
+
+      <!-- Chain Resolution -->
+      <div class="card">
+        <h3>🔗 Chain Name Resolution</h3>
+        <p>Multi-stage matching: exact name → alias map → fuzzy contains → <span class="glossary" data-def="Bigram-based string similarity scoring used to suggest the closest match when input doesn't match any chain">Dice coefficient</span> similarity. Supports 12 common aliases.</p>
+      </div>
+
+      <div class="gradient-table-wrap">
+        <h3 class="gradient-table-title">Chain Alias Map</h3>
+        <p class="gradient-table-subtitle">Type the short name, get the chain ID</p>
+        <table class="gradient-table">
+          <thead>
+            <tr><th>Alias</th><th>Chain</th><th>Chain ID</th><th>Resolution Stage</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-label">eth</td><td class="gv gv-1">Ethereum</td><td class="gv gv-1">1</td><td class="gv gv-1">Alias</td></tr>
+            <tr><td class="row-label">base</td><td class="gv gv-1">Base</td><td class="gv gv-1">8453</td><td class="gv gv-1">Exact</td></tr>
+            <tr><td class="row-label">arb</td><td class="gv gv-2">Arbitrum</td><td class="gv gv-2">42161</td><td class="gv gv-2">Alias</td></tr>
+            <tr><td class="row-label">op</td><td class="gv gv-2">Optimism</td><td class="gv gv-2">10</td><td class="gv gv-2">Alias</td></tr>
+            <tr><td class="row-label">matic</td><td class="gv gv-3">Polygon</td><td class="gv gv-3">137</td><td class="gv gv-3">Alias</td></tr>
+            <tr><td class="row-label">sol</td><td class="gv gv-3">Solana</td><td class="gv gv-3">792703809</td><td class="gv gv-3">Alias</td></tr>
+            <tr><td class="row-label">bae</td><td class="gv gv-5">Did you mean: Base?</td><td class="gv gv-5">8453</td><td class="gv gv-5">Fuzzy</td></tr>
+          </tbody>
+        </table>
+        <p class="gradient-table-note">Unknown inputs get Dice-coefficient similarity suggestions. 4 resolution stages: exact → alias → contains → fuzzy.</p>
+      </div>
+
+      <div class="mermaid-wrap">
+        <div class="zoom-controls">
+          <button onclick="zoomDiagram(this, 1.2)">+</button>
+          <button onclick="zoomDiagram(this, 0.8)">&minus;</button>
+          <button onclick="resetZoom(this)">&#8634;</button>
+        </div>
+        <pre class="mermaid">
+          graph TD
+            A["🔗 Input: chain name or alias"] --> B{"Exact match?<br/>name / displayName"}
+            B -->|"✅ Yes"| C["Return chain ID"]
+            B -->|"❌ No"| D{"Alias map?<br/>eth→1, arb→42161, ..."}
+            D -->|"✅ Yes"| C
+            D -->|"❌ No"| E{"Contains match?<br/>substring in chain name"}
+            E -->|"✅ Yes"| C
+            E -->|"❌ No"| F["Dice-coefficient<br/>similarity scoring"]
+            F --> G{"Score > threshold?"}
+            G -->|"✅ Yes"| H["Suggest: Did you mean X?"]
+            G -->|"❌ No"| I["Error: Unknown chain"]
+
+            style A fill:#fff3e0,stroke:#e08820,color:#9a5800
+            style C fill:#e6ffe8,stroke:#2a9a40,color:#1a6a2a
+            style H fill:#fff9c4,stroke:#f0e68c,color:#7a6c00
+            style I fill:#ffe8e8,stroke:#d03030,color:#a02020
+        </pre>
+      </div>
+
+      <!-- Schema Introspection -->
+      <div class="card">
+        <h3>📋 Schema Introspection</h3>
+        <p>Agents can query response shapes at runtime instead of guessing. Replaces the need to stuff the full 954KB spec into context.</p>
+      </div>
+
+      <div class="code-block"><span class="cmd">relay</span> <span class="str">schema</span> chains          <span class="cmt"># response shape for GET /chains</span>
+<span class="cmd">relay</span> <span class="str">schema</span> quote.v2        <span class="cmt"># request body schema for POST /quote/v2</span>
+<span class="cmd">relay</span> <span class="str">schema</span> <span class="flag">--list</span>          <span class="cmt"># all 29 public endpoints</span></div>
+
+      <!-- Field Filtering -->
+      <div class="card">
+        <h3>🔍 Field Filtering (Context Window Protection)</h3>
+        <p>JMESPath expressions shrink responses to only what's needed. Built-in presets for common patterns.</p>
+      </div>
+
+      <div class="code-block"><span class="cmt"># 350KB chains response → ~2KB</span>
+<span class="cmd">relay</span> chains list <span class="flag">--fields</span> <span class="str">"chains[].{id: id, name: name, display: displayName}"</span>
+
+<span class="cmt"># Built-in presets</span>
+<span class="cmd">relay</span> chains list <span class="flag">--preset</span> slim      <span class="cmt"># id, name, displayName, vmType, depositEnabled</span>
+<span class="cmd">relay</span> chains list <span class="flag">--preset</span> health    <span class="cmt"># id, name, disabled, blockProductionLagging</span></div>
+
+      <div class="param-table" style="margin:16px 0;">
+        <table class="param-table">
+          <tr><th>Preset</th><th>JMESPath Expression</th><th>Use Case</th></tr>
+          <tr><td><code>chains-slim</code></td><td style="font-size:12px;">chains[].{id, name, displayName, vmType}</td><td>Chain lookup</td></tr>
+          <tr><td><code>chains-health</code></td><td style="font-size:12px;">chains[].{id, name, disabled, blockProductionLagging}</td><td>Health check</td></tr>
+          <tr><td><code>quote-summary</code></td><td style="font-size:12px;">details.{operation, fromChain, toChain, rate, ...}</td><td>Quote comparison</td></tr>
+          <tr><td><code>quote-fees</code></td><td style="font-size:12px;">fees.{relayerGas, relayerService, app, ...}</td><td>Fee breakdown</td></tr>
+          <tr><td><code>request-status</code></td><td style="font-size:12px;">requests[0].{status, txHashes, inTxHash}</td><td>Status polling</td></tr>
+        </table>
+      </div>
+
+      <!-- Smart Output Detection -->
+      <div class="card">
+        <h3>🖥️ Smart Output Detection</h3>
+        <p>Auto-detects terminal type: <strong>table output for humans</strong> (TTY), <strong>JSON for scripts/agents</strong> (piped). No flag needed.</p>
+      </div>
+
+      <!-- Smart Aliases -->
+      <div class="card">
+        <h3>⚡ Smart Aliases</h3>
+        <p>Hardcoded shortcuts for the most common operations. These take priority over dynamic commands.</p>
+      </div>
+
+      <div class="code-block"><span class="cmd">relay</span> <span class="str">status</span> 0x123...              <span class="cmt"># → GET /requests/v2?id=...</span>
+<span class="cmd">relay</span> <span class="str">tx</span> 0x123...                  <span class="cmt"># → prints relay.link/transaction/... URL</span>
+<span class="cmd">relay</span> <span class="str">bridge</span> <span class="flag">--from</span> base <span class="flag">--to</span> eth  <span class="cmt"># → resolves + POST /quote/v2</span></div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 5: SAFETY GUARDS                     -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-safety">
+      <div class="topic-marker">
+        <div class="icon">🛡️</div>
+        <h2>Safety Guards</h2>
+      </div>
+
+      <div class="popout popout-warn" data-label="AGENT SAFETY">
+        <div class="popout-content">
+          Execute endpoints (<code>/execute/bridge</code>, <code>/execute/swap</code>) require the <code>--confirm</code> flag. This prevents AI agents from accidentally submitting live transactions. Without it, the command errors with a clear message.
+        </div>
+      </div>
+
+      <div class="decision">
+        <div class="decision-label">DECISION POINT — EXECUTE SAFETY MODEL</div>
+        <div class="decision-options">
+          <div class="option chosen">
+            <div class="option-title">Require --confirm flag</div>
+            <p>Agent must explicitly opt-in to execution. Dry-run is always available. Fail-safe default.</p>
+          </div>
+          <div class="option">
+            <div class="option-title">Interactive confirmation prompt</div>
+            <p>Works for humans but breaks agents. Non-TTY environments can't respond to prompts.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Input Validation</h3>
+        <p>Validates before HTTP requests with helpful messages — catches mistakes locally before they hit the API.</p>
+      </div>
+
+      <table class="param-table">
+        <tr><th>Input Type</th><th>Validation Rule</th><th>Suggestion</th></tr>
+        <tr><td><code>address</code></td><td>0x-prefixed, 40 hex chars</td><td>"Did you mean 0x...?"</td></tr>
+        <tr><td><code>requestId</code></td><td>0x-prefixed, 64 hex chars</td><td>Format hint</td></tr>
+        <tr><td><code>chainId</code></td><td>Positive integer</td><td>Chain name suggestion</td></tr>
+        <tr><td><code>amount</code></td><td>Numeric string (wei)</td><td>"No decimals — use wei"</td></tr>
+        <tr><td><code>txHash</code></td><td>0x-prefixed, 64 hex chars</td><td>Format hint</td></tr>
+      </table>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 6: AUTH & CONFIG                     -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-code">
+      <div class="topic-marker">
+        <div class="icon">🔑</div>
+        <h2>Auth &amp; Config</h2>
+      </div>
+
+      <div class="framework-box">
+        <h4>API Key Resolution Priority</h4>
+        <div class="fw-tree">
+          <span class="branch-label">resolveApiKey()</span>
+          <div class="branch">
+            <span class="leaf"><strong>1.</strong> CLI flag <code>--api-key</code> — highest priority</span>
+          </div>
+          <div class="branch">
+            <span class="leaf"><strong>2.</strong> Environment variable <code>RELAY_API_KEY</code> — for CI/Docker</span>
+          </div>
+          <div class="branch">
+            <span class="leaf"><strong>3.</strong> Config file <code>~/.relay-cli/config.json</code> — persistent, 0o600 perms</span>
+          </div>
+          <div class="branch">
+            <span class="leaf"><strong>4.</strong> No key — anonymous requests (some endpoints are public)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-block"><span class="cmt"># Set API key</span>
+<span class="cmd">relay</span> config set apiKey your-key
+
+<span class="cmt"># Or use environment variable</span>
+<span class="key">export</span> RELAY_API_KEY=your-key
+
+<span class="cmt"># Switch to testnet</span>
+<span class="cmd">relay</span> <span class="flag">--testnet</span> chains list</div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 7: DEPENDENCIES                      -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-features">
+      <div class="topic-marker">
+        <div class="icon">📦</div>
+        <h2>Dependencies</h2>
+      </div>
+
+      <div class="insight">
+        Only <strong>3 runtime dependencies</strong>. The entire CLI is intentionally minimal — no frameworks, no heavy abstractions. Just the OpenAPI spec driving everything.
+      </div>
+
+      <div class="gradient-table-wrap">
+        <h3 class="gradient-table-title">Runtime Dependencies</h3>
+        <p class="gradient-table-subtitle">Minimal by design — 3 packages total</p>
+        <table class="gradient-table">
+          <thead>
+            <tr><th>Package</th><th>Purpose</th><th>Weight</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-label">commander</td><td class="gv gv-1">CLI framework + programmatic command building</td><td class="gv gv-1">Light</td></tr>
+            <tr><td class="row-label">jmespath</td><td class="gv gv-1">JMESPath field filtering</td><td class="gv gv-1">Light</td></tr>
+            <tr><td class="row-label">cli-table3</td><td class="gv gv-1">Table output formatting</td><td class="gv gv-1">Light</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 8: ROADMAP                           -->
+    <!-- ============================================ -->
+    <div class="topic-section theme-roadmap">
+      <div class="topic-marker">
+        <div class="icon">🚀</div>
+        <h2>What's Next</h2>
+      </div>
+
+      <div class="flow-diagram">
+        <div class="flow-step" style="border-color:#2a9a40; background:#f5fff6;">MCP Server Mode<br><span style="font-size:10px;font-weight:400;color:#1a6a2a;">relay mcp</span></div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step" style="border-color:#2a9a40; background:#f5fff6;">Agent Docs<br><span style="font-size:10px;font-weight:400;color:#1a6a2a;">relay agent-docs</span></div>
+        <div class="flow-connector">→</div>
+        <div class="flow-step" style="border-color:#2a9a40; background:#f5fff6;">npm Publish<br><span style="font-size:10px;font-weight:400;color:#1a6a2a;">@relay-protocol/cli</span></div>
+      </div>
+
+      <div class="popout popout-success" data-label="MCP SERVER MODE">
+        <div class="popout-content">
+          <code>relay mcp</code> will expose all endpoints as <span class="glossary" data-def="Model Context Protocol — standard for connecting AI models to external tools and data sources">MCP</span> tools for Claude Code, Cursor, and other AI coding tools. Same dynamic generation from OpenAPI, same safety guards — but as a tool server instead of a CLI.
+        </div>
+      </div>
+
+      <div class="popout popout-info" data-label="AGENT DOCS">
+        <div class="popout-content">
+          <code>relay agent-docs</code> will generate compiled documentation: invariants, response shapes, common patterns, and worked examples. Designed to fit in AI context windows as a pre-prompt reference.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>npm publish as @relay-protocol/cli</h3>
+        <p>Installable globally via <code>npm install -g @relay-protocol/cli</code>. One command to get the full Relay API at your fingertips.</p>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SUMMARY PANEL                                -->
+    <!-- ============================================ -->
+    <div class="summary-panel">
+      <h2>Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <h4>Core Innovation</h4>
+          <ul>
+            <li>Dynamic CLI from OpenAPI — zero endpoint hardcoding</li>
+            <li>Auto-generates commands for all 29 public endpoints</li>
+            <li>New endpoints appear automatically on next spec refresh</li>
+            <li>Dual input: flags for humans, raw JSON for agents</li>
+          </ul>
+        </div>
+        <div class="summary-card">
+          <h4>Agent-First Design</h4>
+          <ul>
+            <li>Schema introspection — query response shapes at runtime</li>
+            <li>JMESPath field filtering — 350KB → 2KB</li>
+            <li>Smart output detection — JSON when piped</li>
+            <li>Execute safety — --confirm flag prevents accidents</li>
+          </ul>
+        </div>
+        <div class="summary-card">
+          <h4>Human-Friendly</h4>
+          <ul>
+            <li>Fuzzy chain name resolution with suggestions</li>
+            <li>Token symbol → address resolution</li>
+            <li>Table output in terminal, smart aliases</li>
+            <li>Input validation with helpful error messages</li>
+          </ul>
+        </div>
+        <div class="summary-card">
+          <h4>Next Steps</h4>
+          <ul>
+            <li>MCP server mode for AI coding tools</li>
+            <li>Compiled agent documentation</li>
+            <li>npm publish as @relay-protocol/cli</li>
+            <li>Expand token resolution beyond USDC/USDT</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: '#edeaff',
+      primaryBorderColor: '#5b4ed0',
+      primaryTextColor: '#1a1a2e',
+      secondaryColor: '#e2f8f5',
+      secondaryBorderColor: '#2ba89e',
+      lineColor: '#6b7394',
+      fontSize: '15px',
+      fontFamily: 'system-ui, sans-serif',
+    }
+  });
+</script>
+<script>
+function zoomDiagram(btn, factor) {
+  var wrap = btn.closest('.mermaid-wrap');
+  var target = wrap.querySelector('.mermaid');
+  var current = parseFloat(target.dataset.zoom || '1');
+  var next = Math.min(Math.max(current * factor, 0.3), 5);
+  target.dataset.zoom = next;
+  target.style.transform = 'scale(' + next + ')';
+}
+function resetZoom(btn) {
+  var wrap = btn.closest('.mermaid-wrap');
+  var target = wrap.querySelector('.mermaid');
+  target.dataset.zoom = '1';
+  target.style.transform = 'scale(1)';
+}
+document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+  var startX, startY, scrollL, scrollT;
+  wrap.addEventListener('mousedown', function(e) {
+    if (e.target.closest('.zoom-controls')) return;
+    var target = wrap.querySelector('.mermaid');
+    if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+    wrap.classList.add('is-panning');
+    startX = e.clientX; startY = e.clientY;
+    scrollL = wrap.scrollLeft; scrollT = wrap.scrollTop;
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!wrap.classList.contains('is-panning')) return;
+    wrap.scrollLeft = scrollL - (e.clientX - startX);
+    wrap.scrollTop = scrollT - (e.clientY - startY);
+  });
+  window.addEventListener('mouseup', function() {
+    wrap.classList.remove('is-panning');
+  });
+});
+</script>
+</body>
+</html>
