@@ -157,6 +157,6 @@ src/
 
 ## What's Next
 
-- **MCP server mode** (`relay mcp`): expose all endpoints as MCP tools for Claude Code / Cursor
+- **MCP server mode** (`relay mcp`): likely using a [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) — 2-3 tools (`search`, `execute`, `agent-docs`) instead of 47 individual tools. The CLI's executor, validator, and chain-resolver become the runtime library. See `docs/relay-api-response-structures.md` for the reference material agents need.
 - **Agent documentation** (`relay agent-docs`): compiled invariants, response shapes, and common patterns
 - **npm publish** as `@relay-protocol/cli`
