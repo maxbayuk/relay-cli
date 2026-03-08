@@ -1,0 +1,492 @@
+{
+  "version": "0.1.0",
+  "tool": "relay-cli",
+  "generated": "2026-03-07",
+  "description": "Machine-readable catalog of all relay-cli commands. Source of truth for command discovery.",
+  "invocation": "relay <command> [subcommand] [args...] --output json",
+  "globalFlags": [
+    { "flag": "--api-key <key>", "description": "API key (overrides RELAY_API_KEY env and ~/.relay-cli/config.json)" },
+    { "flag": "--testnet", "description": "Use testnet API (api.testnets.relay.link)" },
+    { "flag": "--output <format>", "description": "Output format: json | table | minimal. Auto-detects: json when piped, table in TTY" },
+    { "flag": "--fields <jmespath>", "description": "JMESPath expression to filter response fields" },
+    { "flag": "--preset <name>", "description": "Built-in field preset (chains-slim, chains-health, request-summary)" },
+    { "flag": "--dry-run", "description": "Print curl equivalent without executing" },
+    { "flag": "--refresh-cache", "description": "Force refresh cached OpenAPI spec and chains" },
+    { "flag": "--no-pretty", "description": "Compact JSON output (no indentation)" }
+  ],
+  "commands": [
+    {
+      "name": "relay chains list",
+      "command": "relay chains list",
+      "method": "GET",
+      "path": "/chains",
+      "group": "chains",
+      "description": "List all supported chains with solver addresses, contracts, and currencies",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [],
+      "response_shape": "{ chains: Array<{ id, name, displayName, vmType, httpRpcUrl, depositEnabled, solverAddresses: string[], ... }> }",
+      "gotchas": ["Response wraps in {chains: [...]}, NOT a bare array", "solverAddresses is an ARRAY per chain, not a string"],
+      "example": "relay chains list --preset slim"
+    },
+    {
+      "name": "relay chains health",
+      "command": "relay chains health",
+      "method": "GET",
+      "path": "/chains/health",
+      "group": "chains",
+      "description": "Quick health check for all chains",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [],
+      "response_shape": "{ chains: Array<{ id, disabled, blockProductionLagging, solverBalance, ... }> }",
+      "example": "relay chains health --preset chains-health"
+    },
+    {
+      "name": "relay chains liquidity",
+      "command": "relay chains liquidity",
+      "method": "GET",
+      "path": "/chains/liquidity",
+      "group": "chains",
+      "description": "Get liquidity data across chains",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [],
+      "example": "relay chains liquidity"
+    },
+    {
+      "name": "relay config get",
+      "command": "relay config get",
+      "method": "GET",
+      "path": "/config/v2",
+      "group": "config",
+      "description": "Get Relay protocol configuration",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [],
+      "example": "relay config get"
+    },
+    {
+      "name": "relay quote",
+      "command": "relay quote",
+      "method": "POST",
+      "path": "/quote/v2",
+      "group": "quote",
+      "description": "Get a quote for a cross-chain bridge or swap",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "user", "type": "string", "required": true, "description": "Address depositing funds on origin chain" },
+        { "name": "originChainId", "type": "number", "required": true, "description": "Origin chain ID" },
+        { "name": "destinationChainId", "type": "number", "required": true, "description": "Destination chain ID" },
+        { "name": "originCurrency", "type": "string", "required": true, "description": "Origin token address (0x0000...0000 for native)" },
+        { "name": "destinationCurrency", "type": "string", "required": true, "description": "Destination token address" },
+        { "name": "amount", "type": "string", "required": true, "description": "Amount in smallest unit (wei)" },
+        { "name": "tradeType", "type": "string", "required": true, "description": "EXACT_INPUT or EXACT_OUTPUT" },
+        { "name": "recipient", "type": "string", "required": false, "description": "Receiving address on destination chain (defaults to user)" },
+        { "name": "referrer", "type": "string", "required": false, "description": "Integrator identifier" },
+        { "name": "useDepositAddress", "type": "boolean", "required": false, "description": "Use a deposit address (for non-wallet scenarios)" },
+        { "name": "slippageTolerance", "type": "string", "required": false, "description": "Slippage tolerance for swap" },
+        { "name": "appFees", "type": "array", "required": false, "description": "App fee configuration" }
+      ],
+      "input_mode": "--params '{\"user\":\"0x...\",\"originChainId\":8453,...}'",
+      "example": "relay quote --params '{\"user\":\"0xabc...\",\"originChainId\":8453,\"destinationChainId\":1,\"originCurrency\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"destinationCurrency\":\"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48\",\"amount\":\"1000000\",\"tradeType\":\"EXACT_INPUT\"}'"
+    },
+    {
+      "name": "relay price",
+      "command": "relay price",
+      "method": "POST",
+      "path": "/price",
+      "group": "price",
+      "description": "Get a price estimate (lighter than quote, no steps/txs returned)",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "user", "type": "string", "required": true, "description": "User wallet address" },
+        { "name": "originChainId", "type": "number", "required": true, "description": "Origin chain ID" },
+        { "name": "destinationChainId", "type": "number", "required": true, "description": "Destination chain ID" },
+        { "name": "originCurrency", "type": "string", "required": true, "description": "Origin token address" },
+        { "name": "destinationCurrency", "type": "string", "required": true, "description": "Destination token address" },
+        { "name": "amount", "type": "string", "required": true, "description": "Amount in smallest unit" },
+        { "name": "tradeType", "type": "string", "required": true, "description": "EXACT_INPUT or EXACT_OUTPUT" }
+      ],
+      "input_mode": "--params '{...}'",
+      "example": "relay price --params '{\"user\":\"0x...\",\"originChainId\":8453,\"destinationChainId\":1,\"originCurrency\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"destinationCurrency\":\"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48\",\"amount\":\"1000000\",\"tradeType\":\"EXACT_INPUT\"}'"
+    },
+    {
+      "name": "relay execute bridge",
+      "command": "relay execute bridge --confirm",
+      "method": "POST",
+      "path": "/execute/bridge/v2",
+      "group": "execute",
+      "description": "Execute a cross-chain bridge transaction",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON (same shape as /quote response steps)" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run. Without it, the CLI prints an error and exits.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay execute bridge --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay execute swap",
+      "command": "relay execute swap --confirm",
+      "method": "POST",
+      "path": "/execute/swap",
+      "group": "execute",
+      "description": "Execute a swap transaction",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay execute swap --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay execute call",
+      "command": "relay execute call --confirm",
+      "method": "POST",
+      "path": "/execute/call/v2",
+      "group": "execute",
+      "description": "Execute a cross-chain call (bridge + arbitrary contract call on destination)",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay execute call --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay execute swap-multi",
+      "command": "relay execute swap-multi --confirm",
+      "method": "POST",
+      "path": "/execute/swap/multi-input",
+      "group": "execute",
+      "description": "Execute a multi-input swap (multiple tokens on origin → single token on destination)",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay execute swap-multi --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay execute permits",
+      "command": "relay execute permits --confirm",
+      "method": "POST",
+      "path": "/execute/permits",
+      "group": "execute",
+      "description": "Execute permit-based approvals",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay execute permits --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay execute submit",
+      "command": "relay execute submit --confirm",
+      "method": "POST",
+      "path": "/execute",
+      "group": "execute",
+      "description": "Generic execute endpoint (submit signed transactions)",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay execute submit --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay requests list",
+      "command": "relay requests list",
+      "method": "GET",
+      "path": "/requests/v2",
+      "group": "requests",
+      "description": "Get request details by ID, tx hash, or user address",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "id", "type": "string", "required": false, "description": "Request ID (0x-prefixed, 66 chars)" },
+        { "name": "hash", "type": "string", "required": false, "description": "Transaction hash to look up" },
+        { "name": "user", "type": "string", "required": false, "description": "User wallet address" },
+        { "name": "status", "type": "string", "required": false, "description": "Filter by status" },
+        { "name": "originChainId", "type": "number", "required": false, "description": "Filter by origin chain" },
+        { "name": "destinationChainId", "type": "number", "required": false, "description": "Filter by destination chain" },
+        { "name": "limit", "type": "number", "required": false, "description": "Max results" }
+      ],
+      "response_shape": "{ requests: Array<{ id, status, user, data: { metadata, fees, feesUsd, inTxs, outTxs, ... }, ... }> }",
+      "gotchas": [
+        "Response wraps in {requests: [...]}, NOT a bare array",
+        "metadata is INSIDE data: requests[0].data.metadata, NOT requests[0].metadata",
+        "fees structure is {gas, fixed, price}, NOT {gas, relayer}",
+        "Use hash= to look up by tx hash. txHash= and inTxHash= return 20 unrelated results",
+        "outTxs on failure/refund is minimal stub: [{chainId: N}] with no hash or status"
+      ],
+      "example": "relay requests list --id 0x67015eb..."
+    },
+    {
+      "name": "relay requests metadata",
+      "command": "relay requests metadata",
+      "method": "POST",
+      "path": "/requests/metadata",
+      "group": "requests",
+      "description": "Submit metadata for a request",
+      "auth_required": true,
+      "dangerous": false,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Metadata payload" }
+      ],
+      "input_mode": "--params '{...}'",
+      "example": "relay requests metadata --params '{\"requestId\":\"0x...\",\"metadata\":{...}}'"
+    },
+    {
+      "name": "relay requests signature",
+      "command": "relay requests signature",
+      "method": "GET",
+      "path": "/requests/{requestId}/signature/v2",
+      "group": "requests",
+      "description": "Get the signature for a request",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "requestId", "type": "string", "required": true, "positional": false, "description": "Request ID (path param)" }
+      ],
+      "example": "relay requests signature --requestId 0x..."
+    },
+    {
+      "name": "relay intents status",
+      "command": "relay intents status",
+      "method": "GET",
+      "path": "/intents/status/v3",
+      "group": "intents",
+      "description": "Lightweight status check for a request (faster than /requests/v2)",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "requestId", "type": "string", "required": true, "description": "Request ID" }
+      ],
+      "response_shape": "{ status, requestId, originChainId, destinationChainId, txHashes: { inTxHashes, outTxHashes, refundTxHashes } }",
+      "gotchas": ["Only accepts requestId, NOT tx hash. Use /requests/v2?hash= to resolve tx hash → requestId first"],
+      "example": "relay intents status --requestId 0x..."
+    },
+    {
+      "name": "relay transactions index",
+      "command": "relay transactions index",
+      "method": "POST",
+      "path": "/transactions/index",
+      "group": "transactions",
+      "description": "Tell Relay to index a transaction (useful when tx not yet tracked)",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "{ chainId: number, hash: string }" }
+      ],
+      "input_mode": "--params '{\"chainId\":8453,\"hash\":\"0x...\"}'",
+      "example": "relay transactions index --params '{\"chainId\":8453,\"hash\":\"0xabc...\"}'"
+    },
+    {
+      "name": "relay transactions single",
+      "command": "relay transactions single",
+      "method": "POST",
+      "path": "/transactions/single",
+      "group": "transactions",
+      "description": "Get a single transaction by chain and hash",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "{ chainId: number, hash: string }" }
+      ],
+      "input_mode": "--params '{\"chainId\":8453,\"hash\":\"0x...\"}'",
+      "example": "relay transactions single --params '{\"chainId\":8453,\"hash\":\"0xabc...\"}'"
+    },
+    {
+      "name": "relay currencies search",
+      "command": "relay currencies search",
+      "method": "POST",
+      "path": "/currencies/v1",
+      "group": "currencies",
+      "description": "Search for currencies/tokens across chains",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Search criteria" }
+      ],
+      "input_mode": "--params '{...}'",
+      "example": "relay currencies search --params '{\"chainIds\":[1,8453],\"term\":\"USDC\"}'"
+    },
+    {
+      "name": "relay swap-sources",
+      "command": "relay swap-sources",
+      "method": "GET",
+      "path": "/swap-sources",
+      "group": "swap-sources",
+      "description": "List available swap sources (DEX aggregators, AMMs)",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [],
+      "example": "relay swap-sources"
+    },
+    {
+      "name": "relay prices rates",
+      "command": "relay prices rates",
+      "method": "GET",
+      "path": "/prices/rates",
+      "group": "prices",
+      "description": "Get current USD rates for tokens",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [],
+      "example": "relay prices rates"
+    },
+    {
+      "name": "relay fast-fill",
+      "command": "relay fast-fill --confirm",
+      "method": "POST",
+      "path": "/fast-fill",
+      "group": "fast-fill",
+      "description": "Submit a fast-fill for a pending request (solver use)",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "params", "type": "json", "required": true, "description": "Fast-fill payload" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay fast-fill --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay app-fees balances",
+      "command": "relay app-fees balances",
+      "method": "GET",
+      "path": "/app-fees/{wallet}/balances",
+      "group": "app-fees",
+      "description": "Get claimable app fee balances for a wallet",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "wallet", "type": "string", "required": true, "description": "Wallet address (path param)" }
+      ],
+      "example": "relay app-fees balances --wallet 0x..."
+    },
+    {
+      "name": "relay app-fees claim",
+      "command": "relay app-fees claim --confirm",
+      "method": "POST",
+      "path": "/app-fees/{wallet}/claim",
+      "group": "app-fees",
+      "description": "Claim accumulated app fees",
+      "auth_required": true,
+      "dangerous": true,
+      "parameters": [
+        { "name": "wallet", "type": "string", "required": true, "description": "Wallet address (path param)" },
+        { "name": "params", "type": "json", "required": true, "description": "Claim configuration" }
+      ],
+      "safety": "Requires --confirm flag or --dry-run.",
+      "input_mode": "--params '{...}' --confirm",
+      "example": "relay app-fees claim --wallet 0x... --dry-run --params '{...}'"
+    },
+    {
+      "name": "relay app-fees claims",
+      "command": "relay app-fees claims",
+      "method": "GET",
+      "path": "/app-fees/{wallet}/claims",
+      "group": "app-fees",
+      "description": "List past app fee claims for a wallet",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "wallet", "type": "string", "required": true, "description": "Wallet address (path param)" }
+      ],
+      "example": "relay app-fees claims --wallet 0x..."
+    },
+    {
+      "name": "relay status",
+      "command": "relay status <requestId>",
+      "method": "GET",
+      "path": "/requests/v2",
+      "group": "alias",
+      "description": "Quick status lookup (alias for requests list --id)",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "requestId", "type": "string", "required": true, "positional": true, "description": "Request ID (0x-prefixed, 66 chars)" }
+      ],
+      "example": "relay status 0x67015eb..."
+    },
+    {
+      "name": "relay tx",
+      "command": "relay tx <requestId>",
+      "method": null,
+      "path": null,
+      "group": "alias",
+      "description": "Print the relay.link transaction URL (no API call)",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "requestId", "type": "string", "required": true, "positional": true, "description": "Request ID" }
+      ],
+      "example": "relay tx 0x67015eb..."
+    },
+    {
+      "name": "relay bridge",
+      "command": "relay bridge",
+      "method": "POST",
+      "path": "/quote/v2",
+      "group": "alias",
+      "description": "Quick cross-chain quote with chain name and token symbol resolution",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "--from", "type": "string", "required": true, "description": "Origin chain (name, alias, or ID). Accepts: eth, base, arb, op, polygon, etc." },
+        { "name": "--to", "type": "string", "required": true, "description": "Destination chain (name, alias, or ID)" },
+        { "name": "--token", "type": "string", "required": true, "description": "Token symbol: USDC, USDT, ETH" },
+        { "name": "--amount", "type": "string", "required": true, "description": "Amount in smallest unit (wei)" },
+        { "name": "--user", "type": "string", "required": true, "description": "User wallet address" },
+        { "name": "--tradeType", "type": "string", "required": false, "description": "EXACT_INPUT (default) or EXACT_OUTPUT" }
+      ],
+      "example": "relay bridge --from base --to eth --token USDC --amount 1000000 --user 0xabc..."
+    },
+    {
+      "name": "relay schema",
+      "command": "relay schema [endpoint]",
+      "method": null,
+      "path": null,
+      "group": "utility",
+      "description": "Inspect API endpoint schemas (request params, response shape). Use --list for all endpoints.",
+      "auth_required": false,
+      "dangerous": false,
+      "parameters": [
+        { "name": "endpoint", "type": "string", "required": false, "positional": true, "description": "Endpoint to inspect (e.g., chains, quote.v2, requests). Dot or slash notation." },
+        { "name": "--list", "type": "boolean", "required": false, "description": "List all available endpoints" }
+      ],
+      "example": "relay schema quote.v2"
+    }
+  ],
+  "safety_tiers": {
+    "read": {
+      "description": "GET endpoints. No restrictions, JSON output.",
+      "commands": ["chains list", "chains health", "chains liquidity", "config get", "intents status", "requests list", "requests signature", "swap-sources", "prices rates", "app-fees balances", "app-fees claims"]
+    },
+    "quote": {
+      "description": "POST endpoints that estimate/preview. --dry-run available, no confirmation needed.",
+      "commands": ["quote", "price", "bridge", "currencies search", "transactions index", "transactions single", "requests metadata"]
+    },
+    "execute": {
+      "description": "POST endpoints that move money or modify state. Require --confirm flag or --dry-run.",
+      "commands": ["execute bridge", "execute swap", "execute call", "execute swap-multi", "execute permits", "execute submit", "fast-fill", "app-fees claim"]
+    }
+  }
+}

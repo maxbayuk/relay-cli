@@ -1,0 +1,99 @@
+{
+  "version": "0.1.0",
+  "description": "Error categories for relay-cli. Route on category, never parse message text.",
+  "error_envelope": {
+    "format": "JSON on stderr, exit code 1",
+    "example": "API Error (400): Amount too low for this route"
+  },
+  "categories": [
+    {
+      "category": "validation",
+      "description": "Input validation failed before any HTTP request was made. The CLI caught the error locally.",
+      "retryable": false,
+      "examples": [
+        "Address must start with 0x",
+        "Request ID must be 66 characters",
+        "Chain ID must be a positive integer",
+        "Unknown token \"XYZ\" on chain 8453"
+      ],
+      "guidance": "Fix input parameters. Check types, required fields, address format (0x + 40 hex), requestId format (0x + 64 hex), chainId (positive integer)."
+    },
+    {
+      "category": "api",
+      "description": "Relay API returned an error response (4xx). The request reached the server but was rejected.",
+      "retryable": false,
+      "http_codes": [400, 401, 403, 404, 422],
+      "common_errors": [
+        { "pattern": "AMOUNT_TOO_LOW", "meaning": "Transfer amount below minimum for this route", "fix": "Increase amount or try a different route" },
+        { "pattern": "UNSUPPORTED_ROUTE", "meaning": "No route exists between these chains/tokens", "fix": "Check supported chains with relay chains list" },
+        { "pattern": "INSUFFICIENT_LIQUIDITY", "meaning": "Not enough solver liquidity for this amount", "fix": "Try a smaller amount or wait for rebalance" },
+        { "pattern": "DEPOSIT_ADDRESS_ALREADY_IN_USE", "meaning": "Deposit address is occupied by another pending request", "fix": "Wait for current request to complete, then retry" },
+        { "pattern": "CHAIN_NOT_SUPPORTED", "meaning": "Chain ID not recognized or temporarily disabled", "fix": "Check relay chains health for disabled chains" }
+      ],
+      "guidance": "Log the error. Check the message for a specific error code. Fix request parameters. Do not retry the same request."
+    },
+    {
+      "category": "network",
+      "description": "Could not reach the Relay API. DNS failure, timeout, or TLS error.",
+      "retryable": true,
+      "retry_strategy": {
+        "type": "exponential_backoff",
+        "initial_delay_seconds": 1,
+        "max_delay_seconds": 30,
+        "max_attempts": 5
+      },
+      "guidance": "Check network connectivity. Verify api.relay.link is reachable. Retry with backoff."
+    },
+    {
+      "category": "rate_limit",
+      "description": "Relay API rate limit exceeded (429).",
+      "retryable": true,
+      "http_codes": [429],
+      "retry_strategy": {
+        "type": "fixed_then_backoff",
+        "initial_delay_seconds": 5,
+        "max_delay_seconds": 60,
+        "max_attempts": 3
+      },
+      "guidance": "Wait and retry. If persistent, reduce request frequency. Consider caching chains/config responses."
+    },
+    {
+      "category": "server",
+      "description": "Relay API server error (5xx). The server encountered an internal error.",
+      "retryable": true,
+      "http_codes": [500, 502, 503, 504],
+      "retry_strategy": {
+        "type": "exponential_backoff",
+        "initial_delay_seconds": 2,
+        "max_delay_seconds": 30,
+        "max_attempts": 3
+      },
+      "guidance": "Likely transient. Retry with backoff. If persistent, check relay.link/status or Relay Discord for outage info."
+    },
+    {
+      "category": "auth",
+      "description": "API key is missing, invalid, or unauthorized for this endpoint.",
+      "retryable": false,
+      "http_codes": [401, 403],
+      "guidance": "Check RELAY_API_KEY environment variable or ~/.relay-cli/config.json. Some endpoints (execute/*) require a valid API key. Public read endpoints do not require auth."
+    },
+    {
+      "category": "safety",
+      "description": "CLI safety guard triggered. Execute endpoint called without --confirm flag.",
+      "retryable": false,
+      "guidance": "Add --confirm flag to execute the transaction, or use --dry-run to preview. This is intentional — prevents accidental transaction execution by AI agents."
+    },
+    {
+      "category": "cache",
+      "description": "Failed to read/write cached data (spec, chains). Usually a file permission issue.",
+      "retryable": false,
+      "guidance": "Check permissions on ~/.relay-cli/cache/. Run relay cache --clear to reset. Use --refresh-cache to force re-fetch."
+    },
+    {
+      "category": "parse",
+      "description": "Failed to parse API response or --params JSON input.",
+      "retryable": false,
+      "guidance": "For --params: verify JSON syntax. For API response: possible API change or maintenance. Log raw response."
+    }
+  ]
+}
