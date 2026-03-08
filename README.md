@@ -155,8 +155,20 @@ src/
 | `jmespath` | JMESPath field filtering for response data |
 | `cli-table3` | Table output formatting |
 
+## Agent Integration
+
+The repo includes machine-readable contracts for AI agent discovery (inspired by [Kraken CLI](https://github.com/krakenfx/kraken-cli)):
+
+| File | Purpose |
+|------|---------|
+| `llms.txt` | Discovery entry point — links to all agent resources |
+| `AGENTS.md` | Integration guide — invocation contract, safety tiers, gotchas |
+| `CLAUDE.md` | Claude Code specific instructions and workflows |
+| `agents/tool-catalog.json` | All 29 commands with parameter schemas, types, safety flags |
+| `agents/error-catalog.json` | 9 error categories with retry strategies |
+| `docs/relay-api-response-structures.md` | Field-by-field response docs with cross-status comparisons |
+
 ## What's Next
 
 - MCP server mode
-- Agent documentation command
 - npm publish

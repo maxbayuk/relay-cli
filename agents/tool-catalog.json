@@ -450,12 +450,12 @@
       "auth_required": false,
       "dangerous": false,
       "parameters": [
-        { "name": "--from", "type": "string", "required": true, "description": "Origin chain (name, alias, or ID). Accepts: eth, base, arb, op, polygon, etc." },
-        { "name": "--to", "type": "string", "required": true, "description": "Destination chain (name, alias, or ID)" },
-        { "name": "--token", "type": "string", "required": true, "description": "Token symbol: USDC, USDT, ETH" },
-        { "name": "--amount", "type": "string", "required": true, "description": "Amount in smallest unit (wei)" },
-        { "name": "--user", "type": "string", "required": true, "description": "User wallet address" },
-        { "name": "--tradeType", "type": "string", "required": false, "description": "EXACT_INPUT (default) or EXACT_OUTPUT" }
+        { "name": "from", "type": "string", "required": true, "description": "Origin chain (name, alias, or ID). Accepts: eth, base, arb, op, polygon, etc." },
+        { "name": "to", "type": "string", "required": true, "description": "Destination chain (name, alias, or ID)" },
+        { "name": "token", "type": "string", "required": true, "description": "Token symbol: USDC, USDT, ETH" },
+        { "name": "amount", "type": "string", "required": true, "description": "Amount in smallest unit (wei)" },
+        { "name": "user", "type": "string", "required": true, "description": "User wallet address" },
+        { "name": "tradeType", "type": "string", "required": false, "description": "EXACT_INPUT (default) or EXACT_OUTPUT" }
       ],
       "example": "relay bridge --from base --to eth --token USDC --amount 1000000 --user 0xabc..."
     },
@@ -482,7 +482,11 @@
     },
     "quote": {
       "description": "POST endpoints that estimate/preview. --dry-run available, no confirmation needed.",
-      "commands": ["quote", "price", "bridge", "currencies search", "transactions index", "transactions single", "requests metadata"]
+      "commands": ["quote", "price", "bridge", "currencies search"]
+    },
+    "write": {
+      "description": "POST endpoints that write data but don't move money. No --confirm required.",
+      "commands": ["transactions index", "transactions single", "requests metadata"]
     },
     "execute": {
       "description": "POST endpoints that move money or modify state. Require --confirm flag or --dry-run.",

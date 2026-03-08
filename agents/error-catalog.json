@@ -2,8 +2,13 @@
   "version": "0.1.0",
   "description": "Error categories for relay-cli. Route on category, never parse message text.",
   "error_envelope": {
-    "format": "JSON on stderr, exit code 1",
-    "example": "API Error (400): Amount too low for this route"
+    "format": "Structured text on stderr, exit code 1. Category is embedded in prefix.",
+    "pattern": "<Category> Error [(<http_code>)]: <message>",
+    "examples": [
+      "API Error (400): Amount too low for this route",
+      "Validation Error: Address must start with 0x",
+      "Safety Error: Execute endpoints require --confirm flag"
+    ]
   },
   "categories": [
     {
@@ -22,7 +27,7 @@
       "category": "api",
       "description": "Relay API returned an error response (4xx). The request reached the server but was rejected.",
       "retryable": false,
-      "http_codes": [400, 401, 403, 404, 422],
+      "http_codes": [400, 404, 422],
       "common_errors": [
         { "pattern": "AMOUNT_TOO_LOW", "meaning": "Transfer amount below minimum for this route", "fix": "Increase amount or try a different route" },
         { "pattern": "UNSUPPORTED_ROUTE", "meaning": "No route exists between these chains/tokens", "fix": "Check supported chains with relay chains list" },

@@ -2,21 +2,19 @@
 
 > AI-native CLI for Relay Protocol — cross-chain bridging and swaps across 69+ chains.
 
-relay-cli dynamically generates commands from the Relay OpenAPI spec at runtime. New endpoints appear automatically without code changes.
-
 ## Agent Integration
 
-- [AGENTS.md](AGENTS.md): Integration guide — invocation contract, auth, safety tiers, error handling, gotchas
-- [CLAUDE.md](CLAUDE.md): Claude Code specific instructions — common workflows, safety rules, what not to do
+- [AGENTS.md](AGENTS.md): Integration guide — invocation contract, auth, safety, gotchas
+- [CLAUDE.md](CLAUDE.md): Claude Code specific instructions and workflows
 
 ## Machine-Readable Contracts
 
-- [agents/tool-catalog.json](agents/tool-catalog.json): 29 commands with parameter schemas, types, and safety flags. Single source of truth for command discovery.
-- [agents/error-catalog.json](agents/error-catalog.json): 9 error categories with retry strategies. Route on category, never parse message text.
+- [agents/tool-catalog.json](agents/tool-catalog.json): 29 commands with parameter schemas, types, and safety flags
+- [agents/error-catalog.json](agents/error-catalog.json): 9 error categories with retry strategies
 
 ## API Documentation
 
-- [docs/relay-api-response-structures.md](docs/relay-api-response-structures.md): Field-by-field response documentation with cross-status comparisons and gotchas
+- [docs/relay-api-response-structures.md](docs/relay-api-response-structures.md): Field-by-field response docs with gotchas
 - Relay docs: https://docs.relay.link
 - Relay docs (LLM-optimized): https://docs.relay.link/llms.txt
 - OpenAPI spec: https://api.relay.link/documentation/json (954KB, auto-cached by CLI for 24h)
