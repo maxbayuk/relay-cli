@@ -20,8 +20,7 @@
   ],
   "dependencies": {
     "commander": "^13.1.0",
-    "jmespath": "^0.16.0",
-    "cli-table3": "^0.6.5"
+    "jmespath": "^0.16.0"
   },
   "devDependencies": {
     "tsup": "^8.4.0",

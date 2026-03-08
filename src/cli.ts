@@ -1,5 +1,11 @@
 import { Command } from 'commander'
-import { loadSpec, getPublicPaths } from './core/spec-loader.js'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+import { loadSpec, getPublicPaths, getLatestVersionPaths } from './core/spec-loader.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'))
 import { execute, toCurl, ApiError } from './core/executor.js'
 import { formatOutput, detectFormat, type OutputFormat } from './core/formatter.js'
 import { clearCache, getCacheAge } from './core/cache.js'
@@ -13,7 +19,7 @@ const program = new Command()
 program
   .name('relay')
   .description('AI-native CLI for Relay Protocol API — dynamically built from OpenAPI spec')
-  .version('0.1.0')
+  .version(pkg.version)
   .option('--api-key <key>', 'API key (overrides env/config)')
   .option('--testnet', 'Use testnet API (api.testnets.relay.link)')
   .option('--output <format>', 'Output format: json, table, minimal')
@@ -66,13 +72,17 @@ program
         console.error(`Unknown token "${cmdOpts.token}" on chain ${originChainId}. Use a contract address with relay quote --params instead.`)
         process.exit(1)
       }
+      if (!destinationCurrency) {
+        console.error(`Unknown token "${cmdOpts.token}" on chain ${destinationChainId}. Use a contract address with relay quote --params instead.`)
+        process.exit(1)
+      }
 
       const body = {
         user: cmdOpts.user,
         originChainId,
         destinationChainId,
         originCurrency,
-        destinationCurrency: destinationCurrency || '0x0000000000000000000000000000000000000000',
+        destinationCurrency,
         amount: cmdOpts.amount,
         tradeType: cmdOpts.tradeType,
       }
@@ -92,7 +102,7 @@ program
   .action(async (endpoint, cmdOpts) => {
     const opts = program.opts()
     const spec = await loadSpec(opts.refreshCache)
-    const publicPaths = getPublicPaths(spec)
+    const publicPaths = getLatestVersionPaths(getPublicPaths(spec))
 
     if (cmdOpts.list || !endpoint) {
       // List all endpoints
@@ -228,17 +238,10 @@ async function registerFromSpec() {
 
     registerDynamicCommands(program, spec, executeEndpoint)
   } catch (err) {
-    // If spec loading fails, continue with hardcoded commands only
-    // This allows cache/config/status/tx to work offline
-    if (process.argv.length > 2) {
-      const cmd = process.argv[2]
-      const offlineCommands = ['cache', 'config', 'tx', 'schema', 'status', '--help', '-h', '--version', '-V']
-      if (!offlineCommands.includes(cmd)) {
-        console.error(`Warning: Could not load API spec. Some commands may be unavailable.`)
-        console.error(`  ${err instanceof Error ? err.message : err}`)
-        console.error(`  Use 'relay cache --clear' and try again.\n`)
-      }
-    }
+    // Spec loading failed — warn since the command likely needs it
+    console.error(`Warning: Could not load API spec. Some commands may be unavailable.`)
+    console.error(`  ${err instanceof Error ? err.message : err}`)
+    console.error(`  Use 'relay cache --clear' and try again.\n`)
   }
 }
 
@@ -252,8 +255,16 @@ async function executeEndpoint(
   body?: Record<string, unknown>,
   pathParams?: Record<string, string>,
 ) {
-  // Validate inputs before making the request
-  const allParams = { ...queryParams, ...(pathParams || {}) }
+  // Validate inputs before making the request (query, path, and body params)
+  const bodyStringParams: Record<string, string> = {}
+  if (body) {
+    for (const [key, value] of Object.entries(body)) {
+      if (typeof value === 'string' || typeof value === 'number') {
+        bodyStringParams[key] = String(value)
+      }
+    }
+  }
+  const allParams = { ...queryParams, ...(pathParams || {}), ...bodyStringParams }
   const validationErrors = validateParams(allParams)
   if (validationErrors.length > 0) {
     console.error('Validation errors:')
@@ -333,6 +344,10 @@ function summarizeSchema(schema: any, depth = 0): any {
   }
 }
 
-// Register dynamic commands, then parse
-await registerFromSpec()
+// Skip spec loading for commands that don't need it
+const firstArg = process.argv[2]
+const offlineCommands = ['cache', 'config', 'tx', '--help', '-h', '--version', '-V']
+if (!firstArg || !offlineCommands.includes(firstArg)) {
+  await registerFromSpec()
+}
 program.parse()

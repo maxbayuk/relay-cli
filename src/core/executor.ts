@@ -85,16 +85,36 @@ export async function execute(config: RequestConfig): Promise<ExecutionResult> {
     headers['Content-Type'] = 'application/json'
   }
 
-  const response = await fetch(url, {
-    method: config.method,
-    headers,
-    body: config.body && config.method !== 'GET'
-      ? JSON.stringify(config.body)
-      : undefined,
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000)
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: config.method,
+      headers,
+      body: config.body && config.method !== 'GET'
+        ? JSON.stringify(config.body)
+        : undefined,
+      signal: controller.signal,
+    })
+  } catch (err: unknown) {
+    clearTimeout(timeout)
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError('Request timed out after 30s', 0, null)
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
+  }
 
   const timing = Date.now() - start
-  const data = await response.json().catch(() => null)
+  const contentType = response.headers.get('content-type') || ''
+  const rawText = await response.text()
+  let data: unknown = null
+  if (contentType.includes('application/json') || rawText.startsWith('{') || rawText.startsWith('[')) {
+    try { data = JSON.parse(rawText) } catch { /* leave as null */ }
+  }
 
   const responseHeaders: Record<string, string> = {}
   response.headers.forEach((value, key) => {
@@ -102,9 +122,15 @@ export async function execute(config: RequestConfig): Promise<ExecutionResult> {
   })
 
   if (!response.ok) {
-    const errorMsg = data && typeof data === 'object' && 'message' in data
-      ? (data as { message: string }).message
-      : `HTTP ${response.status}`
+    let errorMsg: string
+    if (data && typeof data === 'object' && 'message' in data) {
+      errorMsg = (data as { message: string }).message
+    } else if (rawText && !data) {
+      // Non-JSON response (e.g., 502 HTML from load balancer)
+      errorMsg = `HTTP ${response.status}: non-JSON response (${rawText.slice(0, 200).replace(/\s+/g, ' ')})`
+    } else {
+      errorMsg = `HTTP ${response.status}`
+    }
     throw new ApiError(errorMsg, response.status, data)
   }
 
