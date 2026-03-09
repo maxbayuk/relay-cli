@@ -17,6 +17,80 @@ Relay's API has 47 endpoints (29 public, the rest internal/admin) across 80+ cha
 
 The existing SDK (`relay-kit`) is browser-focused (React hooks, wallet connection). There's nothing for terminal workflows or AI agents.
 
+### Before & After
+
+**Task:** Get solver wallet addresses and chain IDs from the Chains API.
+
+**Without the CLI** — raw `GET /chains` returns **286KB** across 81 chains, each with **26 fields**:
+
+```json
+{
+  "chains": [
+    {
+      "id": 1,
+      "name": "ethereum",
+      "displayName": "Ethereum",
+      "httpRpcUrl": "https://ethereum.publicnode.com",
+      "wsRpcUrl": "wss://ethereum.publicnode.com",
+      "explorerUrl": "https://etherscan.io",
+      "explorerName": "Etherscan",
+      "depositEnabled": true,
+      "tokenSupport": "All",
+      "disabled": false,
+      "partialDisableLimit": 0,
+      "blockProductionLagging": false,
+      "currency": { "id": "eth", "symbol": "ETH", "decimals": 18, "..." : "..." },
+      "withdrawalFee": 0,
+      "depositFee": 0,
+      "surgeEnabled": false,
+      "featuredTokens": ["... 5 token objects with metadata/logos ..."],
+      "erc20Currencies": ["..."],
+      "solverCurrencies": ["..."],
+      "iconUrl": "...",
+      "contracts": { "..." : "..." },
+      "vmType": "evm",
+      "baseChainId": null,
+      "solverAddresses": ["0xf70d...", "0x56c2..."],
+      "tags": ["..."],
+      "protocol": "evm"
+    }
+  ]
+}
+```
+
+An agent gets this 286KB blob, has to figure out the response wraps in `{"chains": [...]}` (not a bare array), then navigate 26 fields per chain to find `solverAddresses` — which is an array, not a string.
+
+**With the CLI** — one command:
+
+```bash
+relay chains list --fields "chains[].{id: id, name: name, solvers: solverAddresses}"
+```
+
+Output is **12KB** (96% smaller), just what you need:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "ethereum",
+    "solvers": [
+      "0xf70da97812cb96acdf810712aa562db8dfa3dbef",
+      "0x56c262027e0de4aea31d2489529cb25d23e58a8b",
+      "0xabb2acd3be814a80e502575d6c1dc5f789e9cd10",
+      "0xa67d7eb4dc68fa6ce8e34ef8cadaf075b9893fbb",
+      "0xada5bb90d0de0bd1b6f3938708f49295a8d1f7cb"
+    ]
+  },
+  {
+    "id": 10,
+    "name": "optimism",
+    "solvers": ["0xf70da97812cb96acdf810712aa562db8dfa3dbef"]
+  }
+]
+```
+
+No guessing at response shape, no navigating 26 fields, no context window blowup. Agents can also run `relay schema chains` to inspect the response shape before making the call.
+
 ## What It Does
 
 The CLI reads `api.relay.link/documentation/json` at startup, caches the spec (24h), and auto-generates commands for all 29 public endpoints. New endpoints appear automatically without code changes.
