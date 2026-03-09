@@ -1,6 +1,8 @@
 # relay-cli
 
-AI-native CLI for Relay Protocol's API — dynamically built from the OpenAPI spec at runtime.
+AI-native CLI for [Relay Protocol](https://relay.link)'s API — dynamically built from the OpenAPI spec at runtime.
+
+[Relay](https://docs.relay.link) is a cross-chain payments protocol. It enables instant bridging and swapping across 69+ blockchains (Ethereum, Base, Arbitrum, Solana, Bitcoin, and more) using a solver network that fills orders from their own inventory, then settles on-chain. The API covers quoting, execution, request tracking, chain/currency discovery, and deposit address flows.
 
 Inspired by [Justin Poehnelt's post on rewriting CLIs for AI agents](https://justin.poehnelt.com/posts/rewrite-your-cli-for-ai-agents/) and the [Google Workspace CLI](https://github.com/googleworkspace/cli), which dynamically generates its entire command surface from Google's Discovery Service. We apply the same pattern to Relay's OpenAPI spec.
 
@@ -22,12 +24,13 @@ The CLI reads `api.relay.link/documentation/json` at startup, caches the spec (2
 ### Dynamic Commands from OpenAPI
 
 ```bash
-relay chains list                           # GET /chains
-relay chains health                         # GET /chains/health
-relay quote --params '{"user":"0x...","originChainId":8453,...}'  # POST /quote/v2
-relay requests list --id 0x123...           # GET /requests/v2
-relay intents status --id 0x123...          # GET /intents/status/v3
-relay execute bridge --params '{...}' --dry-run  # preview without executing
+relay chains list                           # GET /chains — all 69+ supported chains
+relay chains health                         # GET /chains/health — which chains are up/down
+relay quote --params '{"user":"0x...","originChainId":8453,...}'  # POST /quote/v2 — price a cross-chain transfer
+relay requests list --id 0x123...           # GET /requests/v2 — track a request through its lifecycle
+relay intents status --id 0x123...          # GET /intents/status/v3 — execution status with fill details
+relay currencies list --chainId 8453        # GET /currencies — tokens available on a chain
+relay execute bridge --params '{...}' --dry-run  # preview a bridge execution without submitting
 ```
 
 Two input modes: `--params '{"raw": "json"}'` for agents (maps directly to API body) and individual `--flags` for humans.
@@ -153,7 +156,6 @@ src/
 |---------|---------|
 | `commander` | CLI framework with programmatic command building |
 | `jmespath` | JMESPath field filtering for response data |
-| `cli-table3` | Table output formatting |
 
 ## Agent Integration
 
@@ -168,7 +170,3 @@ The repo includes machine-readable contracts for AI agent discovery (inspired by
 | `agents/error-catalog.json` | 9 error categories with retry strategies |
 | `docs/relay-api-response-structures.md` | Field-by-field response docs with cross-status comparisons |
 
-## What's Next
-
-- MCP server mode
-- npm publish
