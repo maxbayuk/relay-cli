@@ -2,7 +2,7 @@
 
 AI-native CLI for [Relay Protocol](https://relay.link)'s API — dynamically built from the OpenAPI spec at runtime.
 
-[Relay](https://docs.relay.link) is a cross-chain payments protocol. It enables instant bridging and swapping across 69+ blockchains (Ethereum, Base, Arbitrum, Solana, Bitcoin, and more) using a solver network that fills orders from their own inventory, then settles on-chain. The API covers quoting, execution, request tracking, chain/currency discovery, and deposit address flows.
+[Relay](https://docs.relay.link) is a cross-chain payments protocol. It enables instant bridging and swapping across 80+ blockchains (Ethereum, Base, Arbitrum, Solana, Bitcoin, and more) using a solver network that fills orders from their own inventory, then settles on-chain. The API covers quoting, execution, request tracking, chain/currency discovery, and deposit address flows.
 
 Inspired by [Justin Poehnelt's post on rewriting CLIs for AI agents](https://justin.poehnelt.com/posts/rewrite-your-cli-for-ai-agents/) and the [Google Workspace CLI](https://github.com/googleworkspace/cli), which dynamically generates its entire command surface from Google's Discovery Service. We apply the same pattern to Relay's OpenAPI spec.
 
@@ -24,7 +24,7 @@ The CLI reads `api.relay.link/documentation/json` at startup, caches the spec (2
 ### Dynamic Commands from OpenAPI
 
 ```bash
-relay chains list                           # GET /chains — all 69+ supported chains
+relay chains list                           # GET /chains — all 80+ supported chains
 relay chains health                         # GET /chains/health — which chains are up/down
 relay quote --params '{"user":"0x...","originChainId":8453,...}'  # POST /quote/v2 — price a cross-chain transfer
 relay requests list --id 0x123...           # GET /requests/v2 — track a request through its lifecycle
