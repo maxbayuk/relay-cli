@@ -646,7 +646,3 @@ src/
 | `jmespath` | JMESPath field filtering for response data |
 
 Zero runtime dependencies beyond these two. The CLI is ~800 lines of TypeScript.
-
-## License
-
-MIT
