@@ -8,7 +8,7 @@ Inspired by [Justin Poehnelt's post on rewriting CLIs for AI agents](https://jus
 
 ## The Problem
 
-Relay's API has 47 endpoints across 80+ chains. AI agents are bad at using it:
+Relay's API has 47 endpoints (29 public, the rest internal/admin) across 80+ chains. AI agents are bad at using it:
 
 - The chains response wraps in `{"chains": [...]}`, not a bare array — agents assume the wrong shape
 - `solverAddresses` is an array per chain, not a string — agents do string comparison and get nothing
