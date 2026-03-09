@@ -159,7 +159,7 @@ src/
 
 ## Agent Integration
 
-The repo includes machine-readable contracts for AI agent discovery (inspired by [Kraken CLI](https://github.com/krakenfx/kraken-cli)):
+The repo includes machine-readable contracts for AI agent discovery:
 
 | File | Purpose |
 |------|---------|
