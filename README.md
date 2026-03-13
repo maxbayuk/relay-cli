@@ -31,7 +31,7 @@ Relay's API has 47 endpoints across 80+ chains. AI agents are bad at using it:
 - The OpenAPI spec is 954KB with zero reusable schemas (everything inlined) — too large for context windows
 - No schema introspection — agents guess at field names and response shapes
 
-The existing SDK (`relay-kit`) is browser-focused (React hooks, wallet connection). There's nothing for terminal workflows or AI agents.
+There was no terminal-native or agent-friendly interface for the Relay API.
 
 ### Before & After
 
