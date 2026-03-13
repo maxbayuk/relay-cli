@@ -8,7 +8,7 @@ CLI for the Relay Protocol cross-chain bridging/swap API. Commands are dynamical
 npx @relay-protocol/cli chains list
 ```
 
-No API key needed for read endpoints. Set `RELAY_API_KEY` for execute endpoints.
+No API key needed for read endpoints. Set `RELAY_API_KEY` for authenticated endpoints.
 
 ## Invocation Contract
 
@@ -32,12 +32,6 @@ Resolution order (first match wins):
 **Agent mode** (POST endpoints): `--params '{"user":"0x...","originChainId":8453,...}'` — maps directly to API body.
 
 **Human mode**: `relay bridge --from base --to eth --token USDC --amount 1000000 --user 0x...`
-
-## Safety
-
-Execute endpoints (`/execute/*`, `/fast-fill`, `/app-fees/claim`) require `--confirm`. Without it, the CLI errors. Use `--dry-run` to preview.
-
-See `safety_tiers` in `agents/tool-catalog.json` for the full classification.
 
 ## Field Filtering
 
@@ -64,7 +58,7 @@ Route on error category, not message text. See `agents/error-catalog.json` for c
 
 | File | Purpose |
 |------|---------|
-| `agents/tool-catalog.json` | All commands with parameter schemas, types, safety flags, per-command gotchas |
+| `agents/tool-catalog.json` | All commands with parameter schemas, types, and per-command gotchas |
 | `agents/error-catalog.json` | Error categories with retry strategies |
 | `docs/relay-api-response-structures.md` | Field-by-field API response docs |
 

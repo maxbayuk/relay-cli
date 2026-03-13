@@ -102,12 +102,32 @@ program
   .action(async (endpoint, cmdOpts) => {
     const opts = program.opts()
     const spec = await loadSpec(opts.refreshCache)
-    const publicPaths = getLatestVersionPaths(getPublicPaths(spec))
+    const allPublicPaths = getLatestVersionPaths(getPublicPaths(spec))
+
+    // Filter out dangerous endpoints (same as command-builder.ts parseEndpoints filter)
+    const publicPaths: Record<string, any> = {}
+    for (const [path, item] of Object.entries(allPublicPaths)) {
+      if (path.startsWith('/execute')) continue
+      if (path.includes('/fast-fill')) continue
+      // Block POST on app-fees (claim), keep GETs (balances, claims list)
+      if (path.includes('/app-fees')) {
+        const safeItem: Record<string, any> = {}
+        for (const [method, op] of Object.entries(item as Record<string, any>)) {
+          if (method === 'post') continue
+          safeItem[method] = op
+        }
+        if (Object.keys(safeItem).length > 0) {
+          publicPaths[path] = safeItem
+        }
+        continue
+      }
+      publicPaths[path] = item
+    }
 
     if (cmdOpts.list || !endpoint) {
       // List all endpoints
       const rows = Object.entries(publicPaths).flatMap(([path, item]) => {
-        return Object.entries(item)
+        return Object.entries(item as Record<string, any>)
           .filter(([method]) => ['get', 'post', 'put', 'delete'].includes(method))
           .map(([method, op]) => ({
             method: method.toUpperCase(),

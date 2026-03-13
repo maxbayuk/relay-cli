@@ -11,15 +11,6 @@ relay <command> --output json 2>/dev/null
 
 Always use `--output json` and redirect stderr. Parse stdout as JSON.
 
-## Safety Rules
-
-**Never execute commands marked `dangerous` without explicit user confirmation.**
-
-Before executing any transaction:
-1. Show the user what will happen (chain, token, amount, recipient)
-2. Get explicit confirmation
-3. Use `--dry-run` first if there's any doubt
-
 ## Common Workflows
 
 ### Check request status
@@ -62,5 +53,4 @@ relay chains list --fields "chains[].{id: id, name: name, solvers: solverAddress
 ## Rules
 
 - Don't use `--params` with GET endpoints — use individual `--flags` instead
-- Don't skip `--confirm` on execute endpoints — the safety gate exists for a reason
 - Don't parse amounts as numbers — they're strings in wei and can overflow JS numbers

@@ -9,8 +9,8 @@
 
 ## Machine-Readable Contracts
 
-- [agents/tool-catalog.json](agents/tool-catalog.json): 29 commands with parameter schemas, types, and safety flags
-- [agents/error-catalog.json](agents/error-catalog.json): 9 error categories with retry strategies
+- [agents/tool-catalog.json](agents/tool-catalog.json): 21 commands with parameter schemas and types
+- [agents/error-catalog.json](agents/error-catalog.json): 8 error categories with retry strategies
 
 ## API Documentation
 

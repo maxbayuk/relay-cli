@@ -114,102 +114,6 @@
       "example": "relay price --params '{\"user\":\"0x...\",\"originChainId\":8453,\"destinationChainId\":1,\"originCurrency\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"destinationCurrency\":\"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48\",\"amount\":\"1000000\",\"tradeType\":\"EXACT_INPUT\"}'"
     },
     {
-      "name": "relay execute bridge",
-      "command": "relay execute bridge --confirm",
-      "method": "POST",
-      "path": "/execute/bridge/v2",
-      "group": "execute",
-      "description": "Execute a cross-chain bridge transaction",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON (same shape as /quote response steps)" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run. Without it, the CLI prints an error and exits.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay execute bridge --dry-run --params '{...}'"
-    },
-    {
-      "name": "relay execute swap",
-      "command": "relay execute swap --confirm",
-      "method": "POST",
-      "path": "/execute/swap",
-      "group": "execute",
-      "description": "Execute a swap transaction",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay execute swap --dry-run --params '{...}'"
-    },
-    {
-      "name": "relay execute call",
-      "command": "relay execute call --confirm",
-      "method": "POST",
-      "path": "/execute/call/v2",
-      "group": "execute",
-      "description": "Execute a cross-chain call (bridge + arbitrary contract call on destination)",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay execute call --dry-run --params '{...}'"
-    },
-    {
-      "name": "relay execute swap-multi",
-      "command": "relay execute swap-multi --confirm",
-      "method": "POST",
-      "path": "/execute/swap/multi-input",
-      "group": "execute",
-      "description": "Execute a multi-input swap (multiple tokens on origin → single token on destination)",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay execute swap-multi --dry-run --params '{...}'"
-    },
-    {
-      "name": "relay execute permits",
-      "command": "relay execute permits --confirm",
-      "method": "POST",
-      "path": "/execute/permits",
-      "group": "execute",
-      "description": "Execute permit-based approvals",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay execute permits --dry-run --params '{...}'"
-    },
-    {
-      "name": "relay execute submit",
-      "command": "relay execute submit --confirm",
-      "method": "POST",
-      "path": "/execute",
-      "group": "execute",
-      "description": "Generic execute endpoint (submit signed transactions)",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "params", "type": "json", "required": true, "description": "Full request body as JSON" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay execute submit --dry-run --params '{...}'"
-    },
-    {
       "name": "relay requests list",
       "command": "relay requests list",
       "method": "GET",
@@ -352,22 +256,6 @@
       "example": "relay prices rates"
     },
     {
-      "name": "relay fast-fill",
-      "command": "relay fast-fill --confirm",
-      "method": "POST",
-      "path": "/fast-fill",
-      "group": "fast-fill",
-      "description": "Submit a fast-fill for a pending request (solver use)",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "params", "type": "json", "required": true, "description": "Fast-fill payload" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay fast-fill --dry-run --params '{...}'"
-    },
-    {
       "name": "relay app-fees balances",
       "command": "relay app-fees balances",
       "method": "GET",
@@ -380,23 +268,6 @@
         { "name": "wallet", "type": "string", "required": true, "description": "Wallet address (path param)" }
       ],
       "example": "relay app-fees balances --wallet 0x..."
-    },
-    {
-      "name": "relay app-fees claim",
-      "command": "relay app-fees claim --confirm",
-      "method": "POST",
-      "path": "/app-fees/{wallet}/claim",
-      "group": "app-fees",
-      "description": "Claim accumulated app fees",
-      "auth_required": true,
-      "dangerous": true,
-      "parameters": [
-        { "name": "wallet", "type": "string", "required": true, "description": "Wallet address (path param)" },
-        { "name": "params", "type": "json", "required": true, "description": "Claim configuration" }
-      ],
-      "safety": "Requires --confirm flag or --dry-run.",
-      "input_mode": "--params '{...}' --confirm",
-      "example": "relay app-fees claim --wallet 0x... --dry-run --params '{...}'"
     },
     {
       "name": "relay app-fees claims",
@@ -485,12 +356,8 @@
       "commands": ["quote", "price", "bridge", "currencies search"]
     },
     "write": {
-      "description": "POST endpoints that write data but don't move money. No --confirm required.",
+      "description": "POST endpoints that write data but don't move money.",
       "commands": ["transactions index", "transactions single", "requests metadata"]
-    },
-    "execute": {
-      "description": "POST endpoints that move money or modify state. Require --confirm flag or --dry-run.",
-      "commands": ["execute bridge", "execute swap", "execute call", "execute swap-multi", "execute permits", "execute submit", "fast-fill", "app-fees claim"]
     }
   }
 }

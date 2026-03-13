@@ -24,7 +24,7 @@ Inspired by [Justin Poehnelt's post on rewriting CLIs for AI agents](https://jus
 
 ## The Problem
 
-Relay's API has 47 endpoints (29 public, the rest internal/admin) across 80+ chains. AI agents are bad at using it:
+Relay's API has 47 endpoints across 80+ chains. AI agents are bad at using it:
 
 - The chains response wraps in `{"chains": [...]}`, not a bare array — agents assume the wrong shape
 - `solverAddresses` is an array per chain, not a string — agents do string comparison and get nothing
@@ -183,7 +183,7 @@ id   name      displayName
 100  gnosis    Gnosis
 ```
 
-With an API key (optional — enables rate limit increases and execute endpoints):
+With an API key (optional — enables rate limit increases and authenticated endpoints):
 
 ```bash
 # Set API key via environment variable
@@ -232,8 +232,8 @@ Exit codes: `0` = success, `1` = error (validation, HTTP, or runtime).
 | `llms.txt` | Discovery entry point — links to all agent resources |
 | `AGENTS.md` | Integration guide — invocation contract, safety tiers, gotchas |
 | `CLAUDE.md` | Claude Code specific instructions and workflows |
-| `agents/tool-catalog.json` | All 29 commands with parameter schemas, types, safety flags |
-| `agents/error-catalog.json` | 9 error categories with retry strategies |
+| `agents/tool-catalog.json` | All 21 commands with parameter schemas and types |
+| `agents/error-catalog.json` | 8 error categories with retry strategies |
 | `docs/relay-api-response-structures.md` | Field-by-field response docs with cross-status comparisons |
 
 ### Schema Introspection
@@ -243,7 +243,7 @@ Agents can query response shapes at runtime instead of guessing:
 ```bash
 relay schema chains          # Response shape for GET /chains
 relay schema quote.v2        # Request body schema for POST /quote/v2
-relay schema --list          # All 29 public endpoints with methods
+relay schema --list          # All 21 public endpoints with methods
 ```
 
 <details>
@@ -253,7 +253,7 @@ Most CLIs are built for humans and later adapted for automation. This creates fr
 
 1. **Context windows** — A 286KB chains response eats 25%+ of an agent's context. JMESPath filtering and built-in presets let agents request only the fields they need.
 2. **Response shape discovery** — Agents hallucinate field names. Schema introspection (`relay schema <endpoint>`) gives them the actual shape before making calls.
-3. **Safety by default** — Execute endpoints require `--confirm`. Agents can't accidentally submit live transactions. `--dry-run` prints the curl equivalent for review.
+3. **Dry-run support** — `--dry-run` on any POST prints the curl equivalent for review before committing.
 4. **Consistent error format** — Validation errors, HTTP errors, and runtime errors all follow the same structure. The error catalog documents retry strategies for each category.
 5. **Auto-format detection** — TTY gets tables, pipes get JSON. No `--output json` flag needed in scripts.
 
@@ -261,17 +261,16 @@ Most CLIs are built for humans and later adapted for automation. This creates fr
 
 ## Commands
 
-29 public commands across 7 groups, auto-generated from the OpenAPI spec. New endpoints appear automatically without code changes.
+21 commands across 7 groups, auto-generated from the OpenAPI spec. New endpoints appear automatically without code changes.
 
 | Group | Commands | Description |
 |-------|----------|-------------|
 | Chains | 3 | Chain discovery, health checks, liquidity |
 | Quoting | 2 | Price estimates and full quotes with steps |
-| Execution | 6 | Bridge, swap, call, multi-input, permits, generic |
 | Requests | 4 | Request tracking, metadata, signatures, status |
 | Currencies | 5 | Token search, prices, trending, charts |
-| App Fees | 3 | Fee balances, claiming, claim history |
-| Utility | 6 | Schema, config, cache, status alias, tx link, bridge alias |
+| App Fees | 2 | Fee balances, claim history |
+| Utility | 5 | Schema, config, cache, status alias, tx link, bridge alias |
 
 <details>
 <summary>Full command reference</summary>
@@ -290,17 +289,6 @@ Most CLIs are built for humans and later adapted for automation. This creates fr
 |---------|--------|-------------|
 | `relay quote` | POST | Full quote for a cross-chain bridge or swap — includes steps, fees, time estimate |
 | `relay price` | POST | Lightweight price estimate (no steps/txs, faster than quote) |
-
-### Execution (Requires `--confirm` or `--dry-run`)
-
-| Command | Method | Description |
-|---------|--------|-------------|
-| `relay execute bridge` | POST | Execute a cross-chain bridge transaction |
-| `relay execute swap` | POST | Execute a same-chain or cross-chain swap |
-| `relay execute call` | POST | Bridge + arbitrary contract call on destination |
-| `relay execute swap-multi` | POST | Multi-input swap (multiple origin tokens → single destination) |
-| `relay execute permits` | POST | Execute permit-based token approvals |
-| `relay execute submit` | POST | Generic execute (submit signed transactions) |
 
 ### Requests & Tracking (Public)
 
@@ -326,7 +314,6 @@ Most CLIs are built for humans and later adapted for automation. This creates fr
 | Command | Method | Description |
 |---------|--------|-------------|
 | `relay app-fees balances` | GET | Claimable app fee balances for a wallet |
-| `relay app-fees claim` | POST | Claim accumulated app fees (requires `--confirm`) |
 | `relay app-fees claims` | GET | List past app fee claims |
 
 ### Other
@@ -337,7 +324,6 @@ Most CLIs are built for humans and later adapted for automation. This creates fr
 | `relay swap-sources` | GET | Available swap sources (DEX aggregators, AMMs) |
 | `relay transactions index` | POST | Tell Relay to index a transaction |
 | `relay transactions single` | POST | Get a single transaction by chain and hash |
-| `relay fast-fill` | POST | Submit a fast-fill for a pending request (solver use, requires `--confirm`) |
 
 </details>
 
@@ -506,7 +492,7 @@ Address must start with 0x. Did you mean: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA9
 
 | Guard | What it does |
 |-------|-------------|
-| `--confirm` required | Execute endpoints (`/execute/bridge`, `/execute/swap`, etc.) refuse to run without `--confirm` — prevents agents from accidentally submitting live transactions |
+| Read + quote only | Covers discovery, quoting, and tracking. Signing is handled externally by your app or wallet |
 | `--dry-run` | Available on all POST endpoints — prints the curl equivalent without executing |
 | TTY detection | Table output for humans, JSON for scripts. No accidental raw JSON walls in terminals |
 | Input validation | Catches bad addresses, chain IDs, amounts before the HTTP request is made |
@@ -591,17 +577,17 @@ relay chains list --fields "chains[].{id: id, name: name, solvers: solverAddress
 relay chains list --fields "chains[?id==\`8453\`].{name: name, solvers: solverAddresses}"
 ```
 
-### Agent workflow: quote → preview → execute
+### Agent workflow: quote → preview
 
 ```bash
 # 1. Get a quote
 QUOTE=$(relay quote --params '{"user":"0x...","originChainId":8453,"destinationChainId":1,"originCurrency":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","destinationCurrency":"0x0000000000000000000000000000000000000000","amount":"1000000"}')
 
-# 2. Preview the execution (dry run)
-relay execute bridge --params "$QUOTE" --dry-run
+# 2. Preview the request (dry run)
+relay quote --params '{"user":"0x...","originChainId":8453,"destinationChainId":1,"originCurrency":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","destinationCurrency":"0x0000000000000000000000000000000000000000","amount":"1000000"}' --dry-run
 
-# 3. Execute for real (requires --confirm)
-relay execute bridge --params "$QUOTE" --confirm
+# 3. Use the quote response to build your transaction externally
+echo "$QUOTE" | jq '.steps'
 ```
 
 ### Pipe JSON output to jq for ad-hoc queries
@@ -633,7 +619,7 @@ src/
 ### How It Works
 
 1. On startup, fetches the OpenAPI spec from `api.relay.link/documentation/json` (cached 24h)
-2. Filters out admin/internal endpoints (29 public remain)
+2. Filters to the 21 public read/quote/tracking endpoints
 3. Deduplicates versioned paths (`/quote` + `/quote/v2` → keeps v2 only)
 4. Generates commander subcommands with appropriate flags for each endpoint
 5. On command execution: validates inputs → resolves chains/tokens → makes HTTP request → formats output

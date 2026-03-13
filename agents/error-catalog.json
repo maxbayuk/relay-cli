@@ -7,7 +7,7 @@
     "examples": [
       "API Error (400): Amount too low for this route",
       "Validation Error: Address must start with 0x",
-      "Safety Error: Execute endpoints require --confirm flag"
+      "Validation Error: Chain ID must be a positive integer"
     ]
   },
   "categories": [
@@ -80,13 +80,7 @@
       "description": "API key is missing, invalid, or unauthorized for this endpoint.",
       "retryable": false,
       "http_codes": [401, 403],
-      "guidance": "Check RELAY_API_KEY environment variable or ~/.relay-cli/config.json. Some endpoints (execute/*) require a valid API key. Public read endpoints do not require auth."
-    },
-    {
-      "category": "safety",
-      "description": "CLI safety guard triggered. Execute endpoint called without --confirm flag.",
-      "retryable": false,
-      "guidance": "Add --confirm flag to execute the transaction, or use --dry-run to preview. This is intentional — prevents accidental transaction execution by AI agents."
+      "guidance": "Check RELAY_API_KEY environment variable or ~/.relay-cli/config.json. Some endpoints require a valid API key. Public read endpoints do not require auth."
     },
     {
       "category": "cache",
