@@ -85,7 +85,9 @@ program
   .requiredOption('--token <symbol>', 'Token symbol (USDC, USDT, ETH)')
   .requiredOption('--amount <value>', 'Amount in smallest unit (wei)')
   .requiredOption('--user <address>', 'User wallet address')
-  .option('--tradeType <type>', 'EXACT_INPUT or EXACT_OUTPUT', 'EXACT_INPUT')
+  .option('--tradeType <type>', 'EXACT_INPUT (default), EXPECTED_OUTPUT, or EXACT_OUTPUT', 'EXACT_INPUT')
+  .option('--deposit-address', 'Use deposit address flow (no wallet signing needed)')
+  .option('--refund-to <address>', 'Address for refunds if bridge fails (defaults to user)')
   .action(async (cmdOpts) => {
     const opts = program.opts()
     try {
@@ -104,7 +106,7 @@ program
         process.exit(EXIT.VALIDATION)
       }
 
-      const body = {
+      const body: Record<string, unknown> = {
         user: cmdOpts.user,
         originChainId,
         destinationChainId,
@@ -113,6 +115,8 @@ program
         amount: cmdOpts.amount,
         tradeType: cmdOpts.tradeType,
       }
+      if (cmdOpts.depositAddress) body.useDepositAddress = true
+      if (cmdOpts.refundTo) body.refundTo = cmdOpts.refundTo
 
       await executeEndpoint('POST', '/quote/v2', {}, opts, body)
     } catch (err) {
