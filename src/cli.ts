@@ -14,6 +14,26 @@ import { registerDynamicCommands } from './core/command-builder.js'
 import { validateParams, formatValidationErrors } from './core/validator.js'
 import { resolveChainId, resolveTokenAddress } from './core/chain-resolver.js'
 
+/** Exit codes by error category — lets agents branch without parsing stderr. */
+const EXIT = {
+  OK: 0,
+  VALIDATION: 2,   // bad input (address, amount, params)
+  AUTH: 3,          // 401/403
+  NETWORK: 4,       // connection refused, timeout
+  API: 5,           // 4xx (not auth)
+  RATE_LIMIT: 6,    // 429
+  SERVER: 7,        // 5xx
+} as const
+
+function exitCodeForApiStatus(status: number): number {
+  if (status === 429) return EXIT.RATE_LIMIT
+  if (status === 401 || status === 403) return EXIT.AUTH
+  if (status === 0) return EXIT.NETWORK  // timeout
+  if (status >= 500) return EXIT.SERVER
+  if (status >= 400) return EXIT.API
+  return EXIT.API
+}
+
 const program = new Command()
 
 program
@@ -77,11 +97,11 @@ program
 
       if (!originCurrency) {
         console.error(`Unknown token "${cmdOpts.token}" on chain ${originChainId}. Use a contract address with relay quote --params instead.`)
-        process.exit(1)
+        process.exit(EXIT.VALIDATION)
       }
       if (!destinationCurrency) {
         console.error(`Unknown token "${cmdOpts.token}" on chain ${destinationChainId}. Use a contract address with relay quote --params instead.`)
-        process.exit(1)
+        process.exit(EXIT.VALIDATION)
       }
 
       const body = {
@@ -97,7 +117,7 @@ program
       await executeEndpoint('POST', '/quote/v2', {}, opts, body)
     } catch (err) {
       console.error(err instanceof Error ? err.message : err)
-      process.exit(1)
+      process.exit(err instanceof ApiError ? exitCodeForApiStatus(err.status) : EXIT.API)
     }
   })
 
@@ -172,13 +192,13 @@ program
       } else if (candidates.length > 1) {
         console.error(`Multiple matches for "${endpoint}":`)
         candidates.forEach(([p]) => console.error(`  ${p}`))
-        process.exit(1)
+        process.exit(EXIT.VALIDATION)
       }
     }
 
     if (!matched) {
       console.error(`No endpoint found matching "${endpoint}". Use --list to see all endpoints.`)
-      process.exit(1)
+      process.exit(EXIT.VALIDATION)
     }
 
     const [path, pathItem] = matched
@@ -309,7 +329,7 @@ async function executeEndpoint(
   if (validationErrors.length > 0) {
     console.error('Validation errors:')
     console.error(formatValidationErrors(validationErrors))
-    process.exit(1)
+    process.exit(EXIT.VALIDATION)
   }
 
   const config = {
@@ -349,7 +369,7 @@ async function executeEndpoint(
       if (err.data) {
         console.error(JSON.stringify(err.data, null, 2))
       }
-      process.exit(1)
+      process.exit(exitCodeForApiStatus(err.status))
     }
     throw err
   }

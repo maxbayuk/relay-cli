@@ -1,8 +1,17 @@
 {
   "version": "0.1.0",
   "description": "Error categories for relay-cli. Route on category, never parse message text.",
+  "exit_codes": {
+    "0": "Success",
+    "2": "Validation error (bad input — fix parameters, do not retry)",
+    "3": "Auth error (401/403 — check RELAY_API_KEY)",
+    "4": "Network error (timeout/connection — retryable)",
+    "5": "API error (4xx — check message for details)",
+    "6": "Rate limit (429 — wait and retry)",
+    "7": "Server error (5xx — retryable with backoff)"
+  },
   "error_envelope": {
-    "format": "Structured text on stderr, exit code 1. Category is embedded in prefix.",
+    "format": "Structured text on stderr, distinct exit code per category.",
     "pattern": "<Category> Error [(<http_code>)]: <message>",
     "examples": [
       "API Error (400): Amount too low for this route",
