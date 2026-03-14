@@ -125,6 +125,28 @@ program
     }
   })
 
+// --- multi-input consolidation alias ---
+// relay consolidate --params '{"user":"0x...","origins":[...],"destinationChainId":8453,...}'
+program
+  .command('consolidate')
+  .description('Consolidate tokens from multiple origin chains into one destination')
+  .requiredOption('--params <json>', 'JSON body: { user, origins: [{ chainId, currency, amount }], destinationChainId, destinationCurrency, tradeType }')
+  .action(async (cmdOpts) => {
+    const opts = program.opts()
+    try {
+      const body = JSON.parse(cmdOpts.params)
+      if (!body.tradeType) body.tradeType = 'EXACT_INPUT'
+      await executeEndpoint('POST', '/execute/swap/multi-input', {}, opts, body)
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        console.error('Validation Error: --params must be valid JSON')
+        process.exit(EXIT.VALIDATION)
+      }
+      console.error(err instanceof Error ? err.message : err)
+      process.exit(err instanceof ApiError ? exitCodeForApiStatus(err.status) : EXIT.API)
+    }
+  })
+
 // --- schema command ---
 program
   .command('schema [endpoint]')
