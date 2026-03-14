@@ -45,7 +45,14 @@ program
   .command('tx <requestId>')
   .description('Print the relay.link transaction URL')
   .action((requestId) => {
-    console.log(`https://relay.link/transaction/${requestId}`)
+    const opts = program.opts()
+    const format = detectFormat(opts.output as OutputFormat)
+    const url = `https://relay.link/transaction/${requestId}`
+    if (format === 'json') {
+      console.log(JSON.stringify({ url, requestId }))
+    } else {
+      console.log(url)
+    }
   })
 
 // --- smart quote alias ---
@@ -213,7 +220,8 @@ program
       output[method] = methodInfo
     }
 
-    console.log(JSON.stringify(output, null, 2))
+    const format = detectFormat(opts.output as OutputFormat)
+    console.log(formatOutput(output, { format, fields: opts.fields, preset: opts.preset, pretty: opts.pretty }))
   })
 
 // --- config command ---
@@ -225,8 +233,14 @@ configCmd
   .command('set <key> <value>')
   .description('Set a config value (e.g., relay config set apiKey <key>)')
   .action((key, value) => {
+    const opts = program.opts()
+    const format = detectFormat(opts.output as OutputFormat)
     writeConfig({ [key]: value })
-    console.log(`Set ${key} in ~/.relay-cli/config.json`)
+    if (format === 'json') {
+      console.log(JSON.stringify({ success: true, key, file: '~/.relay-cli/config.json' }))
+    } else {
+      console.log(`Set ${key} in ~/.relay-cli/config.json`)
+    }
   })
 
 // --- cache command ---
@@ -236,9 +250,15 @@ program
   .option('--clear', 'Clear all cached data')
   .option('--info', 'Show cache status')
   .action((cmdOpts) => {
+    const opts = program.opts()
+    const format = detectFormat(opts.output as OutputFormat)
     if (cmdOpts.clear) {
       clearCache()
-      console.log('Cache cleared.')
+      if (format === 'json') {
+        console.log(JSON.stringify({ success: true, action: 'cache_cleared' }))
+      } else {
+        console.log('Cache cleared.')
+      }
       return
     }
     // Show cache info
@@ -303,7 +323,13 @@ async function executeEndpoint(
   }
 
   if (opts.dryRun) {
-    console.log(toCurl(config))
+    const format = detectFormat(opts.output as OutputFormat)
+    const curl = toCurl(config)
+    if (format === 'json') {
+      console.log(JSON.stringify({ dryRun: true, curl, config }))
+    } else {
+      console.log(curl)
+    }
     return
   }
 
