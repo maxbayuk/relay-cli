@@ -208,6 +208,48 @@ program
     }
   })
 
+// --- balance check ---
+// relay balance --user 0x... --from eth --to base --token USDC
+program
+  .command('balance')
+  .description('Check user balance and max bridgeable amount for a route')
+  .requiredOption('--user <address>', 'Wallet address to check')
+  .requiredOption('--from <chain>', 'Origin chain (name, alias, or ID)')
+  .requiredOption('--to <chain>', 'Destination chain (name, alias, or ID)')
+  .requiredOption('--token <symbol>', 'Token symbol (USDC, USDT, ETH) or address')
+  .option('--dest-token <symbol>', 'Destination token (defaults to same as --token)')
+  .action(async (cmdOpts) => {
+    const opts = program.opts()
+    try {
+      const originChainId = await resolveChainId(cmdOpts.from)
+      const destinationChainId = await resolveChainId(cmdOpts.to)
+
+      const originCurrency = resolveTokenAddress(cmdOpts.token, originChainId)
+      const destToken = cmdOpts.destToken || cmdOpts.token
+      const destinationCurrency = resolveTokenAddress(destToken, destinationChainId)
+
+      if (!originCurrency) {
+        console.error(`Unknown token "${cmdOpts.token}" on chain ${originChainId}. Use a contract address instead.`)
+        process.exit(EXIT.VALIDATION)
+      }
+      if (!destinationCurrency) {
+        console.error(`Unknown token "${destToken}" on chain ${destinationChainId}. Use a contract address instead.`)
+        process.exit(EXIT.VALIDATION)
+      }
+
+      await executeEndpoint('GET', '/config/v2', {
+        user: cmdOpts.user,
+        originChainId: String(originChainId),
+        destinationChainId: String(destinationChainId),
+        originCurrency,
+        destinationCurrency,
+      }, opts)
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : err)
+      process.exit(err instanceof ApiError ? exitCodeForApiStatus(err.status) : EXIT.API)
+    }
+  })
+
 // --- schema command ---
 program
   .command('schema [endpoint]')
