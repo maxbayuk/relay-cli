@@ -2,6 +2,7 @@
 
 Read `agents/tool-catalog.json` for all commands, parameters, and per-command gotchas.
 Read `agents/error-catalog.json` for error categories and retry strategies.
+Read `agents/skills/relay/SKILL.md` for workflow references (bridge, swap, debug, etc.).
 
 ## Invocation
 
