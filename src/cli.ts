@@ -147,6 +147,67 @@ program
     }
   })
 
+// --- amount conversion ---
+program
+  .command('convert')
+  .description('Convert between human-readable token amounts and smallest-unit values (wei/lamports/satoshis)')
+  .requiredOption('--amount <value>', 'Amount to convert (e.g. "1.5" or "1500000000000000000")')
+  .requiredOption('--decimals <n>', 'Token decimals (ETH=18, USDC=6, BTC=8, SOL=9)', parseInt)
+  .option('--to-human', 'Convert smallest-unit → human-readable (default: human → smallest-unit)')
+  .action((cmdOpts) => {
+    const opts = program.opts()
+    try {
+      const { amount, decimals } = cmdOpts
+      if (isNaN(decimals) || decimals < 0 || decimals > 18) {
+        console.error('Validation Error: --decimals must be 0-18')
+        process.exit(EXIT.VALIDATION)
+      }
+
+      let result: string
+      if (cmdOpts.toHuman) {
+        // smallest-unit → human
+        if (!/^\d+$/.test(amount)) {
+          console.error('Validation Error: smallest-unit amount must be a non-negative integer')
+          process.exit(EXIT.VALIDATION)
+        }
+        if (decimals === 0) { result = amount }
+        else {
+          const padded = amount.padStart(decimals + 1, '0')
+          const intPart = padded.slice(0, padded.length - decimals)
+          const fracPart = padded.slice(padded.length - decimals).replace(/0+$/, '')
+          result = fracPart ? `${intPart}.${fracPart}` : intPart
+        }
+      } else {
+        // human → smallest-unit
+        if (!/^\d+(\.\d+)?$/.test(amount)) {
+          console.error('Validation Error: amount must be a positive number (e.g. "1.5")')
+          process.exit(EXIT.VALIDATION)
+        }
+        const [intPart, fracPart = ''] = amount.split('.')
+        if (fracPart.length > decimals) {
+          console.error(`Validation Error: amount has ${fracPart.length} decimal places but token has ${decimals} decimals`)
+          process.exit(EXIT.VALIDATION)
+        }
+        const padded = fracPart.padEnd(decimals, '0')
+        result = (intPart + padded).replace(/^0+/, '') || '0'
+      }
+
+      if (opts.output === 'json') {
+        console.log(JSON.stringify({
+          input: amount,
+          output: result,
+          decimals,
+          direction: cmdOpts.toHuman ? 'toHuman' : 'toSmallestUnit',
+        }))
+      } else {
+        console.log(result)
+      }
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : err)
+      process.exit(EXIT.VALIDATION)
+    }
+  })
+
 // --- schema command ---
 program
   .command('schema [endpoint]')

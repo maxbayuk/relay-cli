@@ -65,8 +65,20 @@ export function toCurl(config: RequestConfig): string {
   return parts.join(' \\\n')
 }
 
+const MAX_RETRIES = 2
+const RETRY_BASE_MS = 500
+
+function isRetryable(status: number): boolean {
+  return status === 429 || status >= 500
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 /**
  * Execute an HTTP request to the Relay API.
+ * Retries up to 2x on 429, 5xx, timeouts, and network errors with exponential backoff.
  */
 export async function execute(config: RequestConfig): Promise<ExecutionResult> {
   const url = buildUrl(config)
@@ -85,56 +97,81 @@ export async function execute(config: RequestConfig): Promise<ExecutionResult> {
     headers['Content-Type'] = 'application/json'
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+  let lastError: Error | undefined
 
-  let response: Response
-  try {
-    response = await fetch(url, {
-      method: config.method,
-      headers,
-      body: config.body && config.method !== 'GET'
-        ? JSON.stringify(config.body)
-        : undefined,
-      signal: controller.signal,
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const backoff = RETRY_BASE_MS * Math.pow(2, attempt - 1)
+      await sleep(backoff)
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30_000)
+
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: config.method,
+        headers,
+        body: config.body && config.method !== 'GET'
+          ? JSON.stringify(config.body)
+          : undefined,
+        signal: controller.signal,
+      })
+    } catch (err: unknown) {
+      clearTimeout(timeout)
+      if (err instanceof Error && err.name === 'AbortError') {
+        lastError = new ApiError('Request timed out after 30s', 0, null)
+        continue // retry timeouts
+      }
+      lastError = err instanceof Error ? err : new Error(String(err))
+      continue // retry network errors
+    } finally {
+      clearTimeout(timeout)
+    }
+
+    const timing = Date.now() - start
+    const contentType = response.headers.get('content-type') || ''
+    const rawText = await response.text()
+    let data: unknown = null
+    if (contentType.includes('application/json') || rawText.startsWith('{') || rawText.startsWith('[')) {
+      try { data = JSON.parse(rawText) } catch { /* leave as null */ }
+    }
+
+    const responseHeaders: Record<string, string> = {}
+    response.headers.forEach((value, key) => {
+      responseHeaders[key] = value
     })
-  } catch (err: unknown) {
-    clearTimeout(timeout)
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new ApiError('Request timed out after 30s', 0, null)
+
+    if (!response.ok) {
+      let errorMsg: string
+      if (data && typeof data === 'object' && 'message' in data) {
+        errorMsg = (data as { message: string }).message
+      } else if (rawText && !data) {
+        errorMsg = `HTTP ${response.status}: non-JSON response (${rawText.slice(0, 200).replace(/\s+/g, ' ')})`
+      } else {
+        errorMsg = `HTTP ${response.status}`
+      }
+      lastError = new ApiError(errorMsg, response.status, data)
+
+      if (isRetryable(response.status) && attempt < MAX_RETRIES) {
+        const retryAfter = response.headers.get('Retry-After')
+        if (retryAfter) {
+          const retryMs = parseInt(retryAfter, 10) * 1000
+          if (!isNaN(retryMs) && retryMs > 0 && retryMs <= 30_000) {
+            await sleep(retryMs)
+          }
+        }
+        continue
+      }
+
+      throw lastError
     }
-    throw err
-  } finally {
-    clearTimeout(timeout)
+
+    return { status: response.status, data, headers: responseHeaders, timing }
   }
 
-  const timing = Date.now() - start
-  const contentType = response.headers.get('content-type') || ''
-  const rawText = await response.text()
-  let data: unknown = null
-  if (contentType.includes('application/json') || rawText.startsWith('{') || rawText.startsWith('[')) {
-    try { data = JSON.parse(rawText) } catch { /* leave as null */ }
-  }
-
-  const responseHeaders: Record<string, string> = {}
-  response.headers.forEach((value, key) => {
-    responseHeaders[key] = value
-  })
-
-  if (!response.ok) {
-    let errorMsg: string
-    if (data && typeof data === 'object' && 'message' in data) {
-      errorMsg = (data as { message: string }).message
-    } else if (rawText && !data) {
-      // Non-JSON response (e.g., 502 HTML from load balancer)
-      errorMsg = `HTTP ${response.status}: non-JSON response (${rawText.slice(0, 200).replace(/\s+/g, ' ')})`
-    } else {
-      errorMsg = `HTTP ${response.status}`
-    }
-    throw new ApiError(errorMsg, response.status, data)
-  }
-
-  return { status: response.status, data, headers: responseHeaders, timing }
+  throw lastError || new Error('Request failed after retries')
 }
 
 export class ApiError extends Error {
