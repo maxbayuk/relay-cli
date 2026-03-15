@@ -2,7 +2,7 @@
 
 AI-native CLI for [Relay Protocol](https://relay.link)'s API — dynamically built from the OpenAPI spec at runtime.
 
-[Relay](https://docs.relay.link) is a cross-chain payments protocol. It enables instant bridging and swapping across 80+ blockchains (Ethereum, Base, Arbitrum, Solana, Bitcoin, and more) using a solver network that fills orders from their own inventory, then settles on-chain. The API covers quoting, execution, request tracking, chain/currency discovery, and deposit address flows.
+[Relay](https://docs.relay.link) is a cross-chain payments protocol. It enables instant bridging and swapping across 75+ blockchains (Ethereum, Base, Arbitrum, Solana, Bitcoin, and more) using a solver network that fills orders from their own inventory, then settles on-chain. The API covers quoting, execution, request tracking, chain/currency discovery, and deposit address flows.
 
 Inspired by [Justin Poehnelt's post on rewriting CLIs for AI agents](https://justin.poehnelt.com/posts/rewrite-your-cli-for-ai-agents/) and the [Google Workspace CLI](https://github.com/googleworkspace/cli), which dynamically generates its entire command surface from Google's Discovery Service. We apply the same pattern to Relay's OpenAPI spec.
 
@@ -24,14 +24,14 @@ Inspired by [Justin Poehnelt's post on rewriting CLIs for AI agents](https://jus
 
 ## The Problem
 
-Relay's API has 47 endpoints (29 public, the rest internal/admin) across 80+ chains. AI agents are bad at using it:
+Relay's API has 29 public endpoints across 75+ chains. AI agents are bad at using it:
 
 - The chains response wraps in `{"chains": [...]}`, not a bare array — agents assume the wrong shape
 - `solverAddresses` is an array per chain, not a string — agents do string comparison and get nothing
 - The OpenAPI spec is 954KB with zero reusable schemas (everything inlined) — too large for context windows
 - No schema introspection — agents guess at field names and response shapes
 
-The existing SDK (`relay-kit`) is browser-focused (React hooks, wallet connection). There's nothing for terminal workflows or AI agents.
+The existing SDK (`relay-kit`) is browser-focused (React hooks, wallet connection). It isn't designed for terminal workflows or AI agents.
 
 ### Before & After
 
