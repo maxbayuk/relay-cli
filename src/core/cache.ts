@@ -28,8 +28,16 @@ export function readCache<T>(key: string): T | null {
       return null // expired
     }
     return entry.data
-  } catch {
-    return null // file doesn't exist or is corrupt
+  } catch (err: unknown) {
+    // File doesn't exist = normal cache miss, no warning needed
+    if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null
+    }
+    // Permission errors, corrupt JSON, etc. — warn so users know cache is broken
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error(`Warning: cache read failed for "${key}": ${msg}`)
+    console.error('  Run "relay cache --clear" to reset.\n')
+    return null
   }
 }
 

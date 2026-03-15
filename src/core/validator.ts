@@ -78,7 +78,6 @@ const PARAM_VALIDATORS: Record<string, (value: string, name: string) => Validati
   originCurrency: validateAddress,
   destinationCurrency: validateAddress,
   currency: validateAddress,
-  referrer: validateAddress,
 
   // Chain IDs
   chainId: validateChainId,

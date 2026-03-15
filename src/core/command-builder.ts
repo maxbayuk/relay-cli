@@ -7,7 +7,6 @@
  *   /chains/health       → relay chains health
  *   /chains/liquidity    → relay chains liquidity
  *   /quote/v2            → relay quote
- *   /execute/bridge/v2   → relay execute bridge
  *   /requests/v2         → relay requests list
  *   /chains/{chainId}/currencies/{address} → relay chains currencies --chainId --address
  */
@@ -24,8 +23,7 @@ export interface EndpointInfo {
   queryParams: ParameterObject[]
   hasBody: boolean
   requiresAuth: boolean
-  isExecute: boolean
-  commandParts: string[]  // e.g. ['chains', 'health'] or ['execute', 'bridge']
+  commandParts: string[]  // e.g. ['chains', 'health'] or ['requests', 'list']
 }
 
 /**
@@ -36,7 +34,15 @@ export function parseEndpoints(spec: OpenApiSpec): EndpointInfo[] {
   const latestPaths = getLatestVersionPaths(publicPaths)
   const endpoints: EndpointInfo[] = []
 
+  // Execution endpoints removed — CLI is read-only (quoting, tracking, discovery)
+  const SKIP_PATHS = ['/execute', '/fast-fill']
+
   for (const [path, item] of Object.entries(latestPaths)) {
+    // Skip execution endpoints
+    if (SKIP_PATHS.some(p => path.startsWith(p))) continue
+    // Skip app-fees claim (but keep balances and claims history)
+    if (path.includes('/claim') && !path.includes('/claims')) continue
+
     const methods = ['get', 'post', 'put', 'delete']
     for (const method of methods) {
       const operation = (item as any)[method] as OperationObject | undefined
@@ -47,7 +53,6 @@ export function parseEndpoints(spec: OpenApiSpec): EndpointInfo[] {
       const queryParams = allParams.filter(p => p.in === 'query')
       const hasBody = !!operation.requestBody
       const requiresAuth = allParams.some(p => p.in === 'header' && p.name === 'x-api-key')
-      const isExecute = path.startsWith('/execute')
       const commandParts = pathToCommandParts(path)
 
       endpoints.push({
@@ -58,7 +63,6 @@ export function parseEndpoints(spec: OpenApiSpec): EndpointInfo[] {
         queryParams,
         hasBody,
         requiresAuth,
-        isExecute,
         commandParts,
       })
     }
@@ -73,7 +77,6 @@ export function parseEndpoints(spec: OpenApiSpec): EndpointInfo[] {
  * /chains → ['chains']
  * /chains/health → ['chains', 'health']
  * /quote/v2 → ['quote']
- * /execute/bridge/v2 → ['execute', 'bridge']
  * /currencies/token/price/v2 → ['currencies', 'token-price']
  * /chains/{chainId}/currencies/{address} → ['chains', 'currency-info']
  * /requests/{requestId}/signature/v2 → ['requests', 'signature']
@@ -97,12 +100,6 @@ function pathToCommandParts(path: string): string[] {
     'config': ['config', 'get'],
     'quote': ['quote'],
     'price': ['price'],
-    'execute': ['execute', 'submit'],
-    'execute/bridge': ['execute', 'bridge'],
-    'execute/call': ['execute', 'call'],
-    'execute/swap': ['execute', 'swap'],
-    'execute/swap/multi-input': ['execute', 'swap-multi'],
-    'execute/permits': ['execute', 'permits'],
     'requests': ['requests', 'list'],
     'requests/metadata': ['requests', 'metadata'],
     'intents/status': ['intents', 'status'],
@@ -113,13 +110,11 @@ function pathToCommandParts(path: string): string[] {
     'prices/rates': ['prices', 'rates'],
     'transactions/index': ['transactions', 'index'],
     'transactions/single': ['transactions', 'single'],
-    'fast-fill': ['fast-fill'],
     'app-fees': ['app-fees', 'balances'],
   }
 
   // Check path for app-fees patterns
   if (pathKey.startsWith('app-fees')) {
-    if (pathKey.includes('claim') && !pathKey.includes('claims')) return ['app-fees', 'claim']
     if (pathKey.includes('claims')) return ['app-fees', 'claims']
     return ['app-fees', 'balances']
   }
@@ -276,22 +271,8 @@ function registerEndpointCommand(
     }
   }
 
-  // Add --confirm for execute endpoints
-  if (ep.isExecute) {
-    cmd.option('--confirm', 'Confirm execution (required for execute endpoints)')
-  }
-
   cmd.action(async (cmdOpts: Record<string, any>) => {
     const globalOpts = parent.parent ? parent.parent.opts() : parent.opts()
-
-    // Safety check for execute endpoints
-    if (ep.isExecute && !cmdOpts.confirm && !globalOpts.dryRun) {
-      console.error('Execute endpoints require --confirm flag or --dry-run.')
-      console.error('This prevents accidental transaction execution.')
-      console.error(`\nTo preview: relay ${ep.commandParts.join(' ')} --dry-run --params '...'`)
-      console.error(`To execute: relay ${ep.commandParts.join(' ')} --confirm --params '...'`)
-      process.exit(1)
-    }
 
     // Build path params
     const pathParams: Record<string, string> = {}

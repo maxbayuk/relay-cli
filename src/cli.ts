@@ -65,15 +65,19 @@ program
       const originChainId = await resolveChainId(cmdOpts.from)
       const destinationChainId = await resolveChainId(cmdOpts.to)
 
-      const originCurrency = resolveTokenAddress(cmdOpts.token, originChainId)
-      const destinationCurrency = resolveTokenAddress(cmdOpts.token, destinationChainId)
+      const originCurrency = await resolveTokenAddress(cmdOpts.token, originChainId)
+      const destinationCurrency = await resolveTokenAddress(cmdOpts.token, destinationChainId)
 
       if (!originCurrency) {
-        console.error(`Unknown token "${cmdOpts.token}" on chain ${originChainId}. Use a contract address with relay quote --params instead.`)
+        console.error(`Unknown token "${cmdOpts.token}" on chain ${originChainId}.`)
+        console.error(`  Find the contract address: relay currencies search --params '{"chainId": ${originChainId}, "term": "${cmdOpts.token}"}'`)
+        console.error(`  Then use: relay quote --params '{"originCurrency": "<address>", ...}'`)
         process.exit(1)
       }
       if (!destinationCurrency) {
-        console.error(`Unknown token "${cmdOpts.token}" on chain ${destinationChainId}. Use a contract address with relay quote --params instead.`)
+        console.error(`Unknown token "${cmdOpts.token}" on chain ${destinationChainId}.`)
+        console.error(`  Find the contract address: relay currencies search --params '{"chainId": ${destinationChainId}, "term": "${cmdOpts.token}"}'`)
+        console.error(`  Then use: relay quote --params '{"destinationCurrency": "<address>", ...}'`)
         process.exit(1)
       }
 

@@ -110,41 +110,58 @@ export async function resolveChainId(input: string): Promise<number> {
   throw new Error(`Unknown chain "${input}". Did you mean:\n${suggestions}`)
 }
 
+const TOKEN_CACHE_KEY_PREFIX = 'token'
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
+
 /**
- * Resolve a common token symbol to its address on a given chain.
- * Only handles well-known tokens — returns undefined for unknown symbols.
+ * Resolve a token symbol to its contract address on a given chain.
+ * Uses the Relay currencies API to look up tokens on any supported chain.
+ * Results are cached for 24h per chain+symbol pair.
  */
-export function resolveTokenAddress(symbol: string, chainId: number): string | undefined {
+export async function resolveTokenAddress(symbol: string, chainId: number): Promise<string | undefined> {
   const upper = symbol.toUpperCase()
 
-  // Native gas token (ETH on EVM chains, etc.)
+  // Native gas token — zero address on all chains
   if (['ETH', 'NATIVE', 'GAS'].includes(upper)) {
     return '0x0000000000000000000000000000000000000000'
   }
 
-  // USDC addresses per chain
-  const USDC: Record<number, string> = {
-    1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',      // Ethereum
-    10: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',     // Optimism
-    137: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',    // Polygon
-    8453: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',   // Base
-    42161: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',  // Arbitrum
-    43114: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',  // Avalanche
+  // Check cache first
+  const cacheKey = `${TOKEN_CACHE_KEY_PREFIX}-${chainId}-${upper}`
+  const cached = readCache<string>(cacheKey)
+  if (cached) return cached
+
+  // Query the currencies v2 API (returns flat array of matches across chains)
+  try {
+    const result = await execute({
+      method: 'POST',
+      path: '/currencies/v2',
+      queryParams: {},
+      body: { chainId, term: upper, limit: 20 },
+    })
+
+    const rawData = result.data
+    if (!Array.isArray(rawData)) return undefined
+
+    // Filter to matching chainId
+    const currencies = rawData.filter(
+      (item: any) => item && typeof item === 'object' && item.chainId === chainId
+    )
+
+    if (currencies.length === 0) return undefined
+
+    // Find exact symbol match (case-insensitive)
+    const match = currencies.find(c => c.symbol.toUpperCase() === upper)
+    if (match) {
+      writeCache(cacheKey, match.address, TOKEN_TTL_MS)
+      return match.address
+    }
+
+    return undefined
+  } catch {
+    // API failure — don't block the user, just return undefined
+    return undefined
   }
-
-  // USDT addresses per chain
-  const USDT: Record<number, string> = {
-    1: '0xdAC17F958D2ee523a2206206994597C13D831ec7',      // Ethereum
-    10: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',     // Optimism
-    137: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',    // Polygon
-    8453: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',   // Base
-    42161: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',  // Arbitrum
-  }
-
-  if (upper === 'USDC') return USDC[chainId]
-  if (upper === 'USDT') return USDT[chainId]
-
-  return undefined
 }
 
 /**

@@ -9,7 +9,11 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "tsup",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "test": "vitest run test/validator.test.ts test/formatter.test.ts",
+    "test:smoke": "vitest run test/smoke.test.ts test/chain-resolver.test.ts",
+    "test:all": "vitest run",
+    "validate-catalog": "tsx scripts/validate-catalog.ts"
   },
   "engines": {
     "node": ">=18"
@@ -25,6 +29,7 @@
   "devDependencies": {
     "tsup": "^8.4.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.0"
   }
 }

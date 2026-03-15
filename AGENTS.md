@@ -8,7 +8,7 @@ CLI for the Relay Protocol cross-chain bridging/swap API. Commands are dynamical
 npx @relay-protocol/cli chains list
 ```
 
-No API key needed for read endpoints. Set `RELAY_API_KEY` for execute endpoints.
+No API key needed for most endpoints. Set `RELAY_API_KEY` for rate limit increases.
 
 ## Invocation Contract
 
@@ -35,9 +35,7 @@ Resolution order (first match wins):
 
 ## Safety
 
-Execute endpoints (`/execute/*`, `/fast-fill`, `/app-fees/claim`) require `--confirm`. Without it, the CLI errors. Use `--dry-run` to preview.
-
-See `safety_tiers` in `agents/tool-catalog.json` for the full classification.
+The CLI is read-only — no execution endpoints are available. It cannot submit transactions or move funds. Use `--dry-run` on any POST to preview the curl equivalent.
 
 ## Field Filtering
 
