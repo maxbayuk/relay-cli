@@ -16,6 +16,16 @@ import { resolveChainId, resolveTokenAddress } from './core/chain-resolver.js'
 
 const program = new Command()
 
+// Commands are registered from the spec BEFORE commander parses flags, so peek
+// argv for --api-key to know which version surface (keyed vs keyless) to build.
+function peekApiKeyFlag(): string | undefined {
+  const eq = process.argv.find(a => a.startsWith('--api-key='))
+  if (eq) return eq.slice('--api-key='.length)
+  const i = process.argv.indexOf('--api-key')
+  return i !== -1 ? process.argv[i + 1] : undefined
+}
+const hasApiKey = !!resolveApiKey(peekApiKeyFlag())
+
 program
   .name('relay')
   .description('AI-native CLI for Relay Protocol API — dynamically built from OpenAPI spec')
@@ -106,7 +116,9 @@ program
   .action(async (endpoint, cmdOpts) => {
     const opts = program.opts()
     const spec = await loadSpec(opts.refreshCache)
-    const publicPaths = getLatestVersionPaths(getPublicPaths(spec))
+    // Same keyed/keyless surface the command registration uses, so `relay
+    // schema requests` shows the version `relay requests list` will call.
+    const publicPaths = getLatestVersionPaths(getPublicPaths(spec), hasApiKey)
 
     if (cmdOpts.list || !endpoint) {
       // List all endpoints
@@ -240,7 +252,7 @@ async function registerFromSpec() {
     const opts = program.opts()
     const spec = await loadSpec(opts.refreshCache)
 
-    registerDynamicCommands(program, spec, executeEndpoint)
+    registerDynamicCommands(program, spec, executeEndpoint, hasApiKey)
   } catch (err) {
     // Spec loading failed — warn since the command likely needs it
     console.error(`Warning: Could not load API spec. Some commands may be unavailable.`)
@@ -258,6 +270,7 @@ async function executeEndpoint(
   opts: Record<string, any>,
   body?: Record<string, unknown>,
   pathParams?: Record<string, string>,
+  requiresAuth = false,
 ) {
   // Validate inputs before making the request (query, path, and body params)
   const bodyStringParams: Record<string, string> = {}
@@ -289,6 +302,15 @@ async function executeEndpoint(
   if (opts.dryRun) {
     console.log(toCurl(config))
     return
+  }
+
+  // Fail client-side with a fix hint instead of the API's raw 400
+  if (requiresAuth && !resolveApiKey(opts.apiKey)) {
+    console.error(`Error: ${path} requires an API key.`)
+    console.error(`  Set one with: export RELAY_API_KEY=<key>`)
+    console.error(`  Or persist it: relay config set apiKey <key>`)
+    console.error(`  Or per-call:   relay ... --api-key <key>`)
+    process.exit(1)
   }
 
   try {

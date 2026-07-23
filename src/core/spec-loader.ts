@@ -103,33 +103,57 @@ export function getPublicPaths(spec: OpenApiSpec): Record<string, PathItem> {
 }
 
 /**
+ * Whether an operation hard-requires an API key (x-api-key marked required in the spec).
+ * Endpoints that merely accept an optional x-api-key header are not gated.
+ */
+export function operationRequiresApiKey(operation: OperationObject): boolean {
+  return (operation.parameters || []).some(
+    p => p.in === 'header' && p.name === 'x-api-key' && p.required === true,
+  )
+}
+
+/**
+ * Whether every operation on a path hard-requires an API key.
+ */
+export function pathRequiresApiKey(item: PathItem): boolean {
+  const ops = ['get', 'post', 'put', 'delete']
+    .map(m => item[m])
+    .filter((op): op is OperationObject => !!op)
+  return ops.length > 0 && ops.every(operationRequiresApiKey)
+}
+
+/**
  * Get the latest version of an endpoint when multiple versions exist.
  * e.g., /quote and /quote/v2 → returns /quote/v2
+ *
+ * A keyless invocation must never be silently routed to a version that
+ * hard-requires x-api-key (e.g. /requests/v3 superseding the public
+ * /requests/v2): without a key, gated versions are skipped in favor of the
+ * latest callable one. If every version is gated, the latest is kept and the
+ * missing-key error is surfaced at invocation time instead.
  */
-export function getLatestVersionPaths(paths: Record<string, PathItem>): Record<string, PathItem> {
-  const pathKeys = Object.keys(paths)
-  const result: Record<string, PathItem> = {}
+export function getLatestVersionPaths(
+  paths: Record<string, PathItem>,
+  hasApiKey = true,
+): Record<string, PathItem> {
+  const groups = new Map<string, Array<{ path: string; version: number }>>()
 
-  for (const p of pathKeys) {
-    // Check if a newer version exists
+  for (const p of Object.keys(paths)) {
     const versionMatch = p.match(/^(.+?)(?:\/v(\d+))?$/)
-    if (!versionMatch) {
-      result[p] = paths[p]
-      continue
-    }
+    const basePath = versionMatch?.[1] ?? p
+    const version = versionMatch?.[2] ? parseInt(versionMatch[2]) : 0
+    if (!groups.has(basePath)) groups.set(basePath, [])
+    groups.get(basePath)!.push({ path: p, version })
+  }
 
-    const basePath = versionMatch[1]
-    const version = versionMatch[2] ? parseInt(versionMatch[2]) : 0
-
-    // Find if there's a higher version
-    const hasHigherVersion = pathKeys.some(other => {
-      const otherMatch = other.match(/^(.+?)\/v(\d+)$/)
-      return otherMatch && otherMatch[1] === basePath && parseInt(otherMatch[2]) > version
-    })
-
-    if (!hasHigherVersion) {
-      result[p] = paths[p]
-    }
+  const result: Record<string, PathItem> = {}
+  for (const versions of groups.values()) {
+    versions.sort((a, b) => b.version - a.version)
+    const callable = hasApiKey
+      ? versions
+      : versions.filter(v => !pathRequiresApiKey(paths[v.path]))
+    const chosen = callable[0] ?? versions[0]
+    result[chosen.path] = paths[chosen.path]
   }
 
   return result

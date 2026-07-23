@@ -28,10 +28,12 @@ export interface EndpointInfo {
 
 /**
  * Parse all public endpoints from the spec into EndpointInfo objects.
+ * `hasApiKey` selects the version surface: keyless invocations must not be
+ * routed to versions that hard-require x-api-key (see getLatestVersionPaths).
  */
-export function parseEndpoints(spec: OpenApiSpec): EndpointInfo[] {
+export function parseEndpoints(spec: OpenApiSpec, hasApiKey = true): EndpointInfo[] {
   const publicPaths = getPublicPaths(spec)
-  const latestPaths = getLatestVersionPaths(publicPaths)
+  const latestPaths = getLatestVersionPaths(publicPaths, hasApiKey)
   const endpoints: EndpointInfo[] = []
 
   // Execution endpoints removed — CLI is read-only (quoting, tracking, discovery)
@@ -52,7 +54,10 @@ export function parseEndpoints(spec: OpenApiSpec): EndpointInfo[] {
       const pathParams = allParams.filter(p => p.in === 'path')
       const queryParams = allParams.filter(p => p.in === 'query')
       const hasBody = !!operation.requestBody
-      const requiresAuth = allParams.some(p => p.in === 'header' && p.name === 'x-api-key')
+      // Only a REQUIRED x-api-key header gates a command; optional headers don't.
+      const requiresAuth = allParams.some(
+        p => p.in === 'header' && p.name === 'x-api-key' && p.required === true,
+      )
       const commandParts = pathToCommandParts(path)
 
       endpoints.push({
@@ -178,9 +183,11 @@ export function registerDynamicCommands(
     opts: Record<string, any>,
     body?: Record<string, unknown>,
     pathParams?: Record<string, string>,
+    requiresAuth?: boolean,
   ) => Promise<void>,
+  hasApiKey = true,
 ): EndpointInfo[] {
-  const endpoints = parseEndpoints(spec)
+  const endpoints = parseEndpoints(spec, hasApiKey)
 
   // Group endpoints by their first command part (top-level group)
   const groups = new Map<string, EndpointInfo[]>()
@@ -240,6 +247,7 @@ function registerEndpointCommand(
     opts: Record<string, any>,
     body?: Record<string, unknown>,
     pathParams?: Record<string, string>,
+    requiresAuth?: boolean,
   ) => Promise<void>,
   commandName?: string,
 ): void {
@@ -302,7 +310,7 @@ function registerEndpointCommand(
       }
     }
 
-    await executeEndpoint(ep.method, ep.path, queryParams, globalOpts, body, pathParams)
+    await executeEndpoint(ep.method, ep.path, queryParams, globalOpts, body, pathParams, ep.requiresAuth)
   })
 }
 

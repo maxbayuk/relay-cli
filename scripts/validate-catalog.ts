@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { loadSpec, getPublicPaths, getLatestVersionPaths } from '../src/core/spec-loader.js'
+import { loadSpec, getPublicPaths, getLatestVersionPaths, pathRequiresApiKey } from '../src/core/spec-loader.js'
 import { parseEndpoints } from '../src/core/command-builder.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -42,10 +42,31 @@ async function main() {
 
   console.log('Fetching live OpenAPI spec...')
   const spec = await loadSpec(true) // force refresh
-  const publicPaths = getLatestVersionPaths(getPublicPaths(spec))
-  const endpoints = parseEndpoints(spec)
+  // The catalog documents the keyless (default) surface — validate against it.
+  const publicPaths = getLatestVersionPaths(getPublicPaths(spec), false)
+  const endpoints = parseEndpoints(spec, false)
 
   let issues = 0
+
+  // 0. Keyless-surface safety: no keyless command may silently map to a path
+  // that hard-requires x-api-key while an ungated version of the same endpoint
+  // exists (that's a version-dedupe bug — the /requests/v3 failure mode).
+  console.log('\n--- Keyless surface → auth gating ---')
+  const allSpecPaths = Object.keys(getPublicPaths(spec))
+  for (const ep of endpoints) {
+    if (!ep.requiresAuth) continue
+    const base = ep.path.replace(/\/v\d+$/, '')
+    const hasUngatedSibling = allSpecPaths.some(p => {
+      if (p !== base && !p.startsWith(base + '/v')) return false
+      return !pathRequiresApiKey(spec.paths[p])
+    })
+    if (hasUngatedSibling) {
+      console.log(`✗  keyless command "relay ${ep.commandParts.join(' ')}" maps to key-required ${ep.path} despite an ungated version existing`)
+      issues++
+    } else {
+      console.log(`ℹ  "relay ${ep.commandParts.join(' ')}" (${ep.path}) is key-required with no ungated version — CLI errors with a fix hint when keyless`)
+    }
+  }
 
   // 1. Check each catalog command exists in spec
   console.log('\n--- Catalog → Spec ---')
